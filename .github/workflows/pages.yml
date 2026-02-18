@@ -18,12 +18,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@93ea575f1c43103b9c173ad79739fdf38f8fc57f # v4.2.2
-      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
-      - uses: pnpm/action-setup@78cb3b21c7467d3b6a4dd5f801c56aec8249604f # v4.2.0
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: pnpm/action-setup@v4
         with:
           version: 10.4.1
-      - uses: actions/setup-node@1d0ff469b7ec7df4d8843b6c31a6050a36731bd5 # v4.4.0
+      - uses: actions/setup-node@v4
         with:
           node-version: 22.13.1
           cache: pnpm
@@ -32,7 +32,7 @@ jobs:
       - run: pnpm run test
       - run: pnpm run build
       - run: cp public/.nojekyll dist/.nojekyll
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
@@ -44,4 +44,4 @@ jobs:
     needs: build
     steps:
       - id: deployment
-        uses: actions/deploy-pages@6f3497be4b2f90edac44e48dff4f42772cbb7ea5 # v4.0.5
+        uses: actions/deploy-pages@v4
