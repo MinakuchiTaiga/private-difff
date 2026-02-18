@@ -13,14 +13,13 @@ export default defineConfig({
         const csp = [
           "default-src 'self'",
           "script-src 'self'",
-          "style-src 'self'",
+          "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data:",
           "font-src 'self'",
           `connect-src ${connectSrc}`,
           "object-src 'none'",
           "base-uri 'self'",
           "form-action 'self'",
-          "frame-ancestors 'none'",
         ].join("; ");
         return html.replace("__APP_CSP__", csp);
       },
