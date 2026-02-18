@@ -5,6 +5,7 @@ import { buildPrintableTwoColumnHtml } from "../export/printView";
 
 const INITIAL_LEFT = "before line 1\nbefore line 2\nbefore line 3";
 const INITIAL_RIGHT = "before line 1\nafter line 2\nbefore line 3\nnew line 4";
+const MAX_TEXT_FILE_BYTES = 20 * 1024 * 1024;
 
 type IconName =
   | "lock"
@@ -118,26 +119,40 @@ export function renderApp(root: HTMLElement): void {
       ignoreWhitespace: ignoreWhitespace.checked,
     });
 
-    const printWindow = window.open("", "_blank");
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const printUrl = URL.createObjectURL(blob);
+    const printWindow = window.open(printUrl, "_blank", "noopener,noreferrer");
     if (!printWindow) {
+      URL.revokeObjectURL(printUrl);
       window.alert("ポップアップを許可してから再試行してください。");
       return;
     }
 
-    printWindow.document.write(html);
-    printWindow.document.close();
+    window.setTimeout(() => URL.revokeObjectURL(printUrl), 60_000);
   });
 
   query<HTMLInputElement>("#left-file").addEventListener("change", async (event) => {
     const input = event.currentTarget as HTMLInputElement;
-    leftText.value = await readTextFile(input.files?.[0]);
-    computeAndRender();
+    try {
+      leftText.value = await readTextFile(input.files?.[0]);
+      computeAndRender();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ファイル読み込みに失敗しました。";
+      window.alert(message);
+      input.value = "";
+    }
   });
 
   query<HTMLInputElement>("#right-file").addEventListener("change", async (event) => {
     const input = event.currentTarget as HTMLInputElement;
-    rightText.value = await readTextFile(input.files?.[0]);
-    computeAndRender();
+    try {
+      rightText.value = await readTextFile(input.files?.[0]);
+      computeAndRender();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ファイル読み込みに失敗しました。";
+      window.alert(message);
+      input.value = "";
+    }
   });
 
   leftText.addEventListener("input", computeAndRender);
@@ -227,6 +242,11 @@ function renderDiffHtml(parts: Change[]): string {
 async function readTextFile(file: File | undefined): Promise<string> {
   if (!file) {
     return "";
+  }
+  if (file.size > MAX_TEXT_FILE_BYTES) {
+    throw new Error(
+      `ファイルサイズが上限を超えています。${Math.floor(MAX_TEXT_FILE_BYTES / (1024 * 1024))}MB以下にしてください。`,
+    );
   }
 
   return new Promise<string>((resolve, reject) => {

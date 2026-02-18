@@ -53,6 +53,10 @@ export function buildPrintableTwoColumnHtml(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    />
     <title>差分印刷ビュー</title>
     <style>
       :root {
@@ -99,13 +103,10 @@ export function buildPrintableTwoColumnHtml(
         align-items: center;
         gap: 6px;
       }
-      button {
-        border: 1px solid var(--line);
-        background: #fff;
-        color: var(--text);
-        border-radius: 8px;
-        padding: 7px 11px;
-        cursor: pointer;
+      .print-tip {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -209,7 +210,7 @@ export function buildPrintableTwoColumnHtml(
       .pane.removed pre { color: var(--bad-text); font-weight: 520; }
       .i { width: 14px; height: 14px; flex: 0 0 14px; }
       @media print {
-        header button { display: none; }
+        .print-tip { display: none; }
         body { background: #fff; }
         .legend { color: #555; }
         @page { size: A4 landscape; margin: 12mm; }
@@ -219,7 +220,7 @@ export function buildPrintableTwoColumnHtml(
   <body>
     <header>
       <h1>${icon("printer")}private-difff 印刷ビュー</h1>
-      <button onclick="window.print()">${icon("file")}印刷する（PDF化）</button>
+      <p class="print-tip">${icon("file")}ブラウザの印刷機能でPDF化してください</p>
     </header>
     <main>
       <section class="legend">

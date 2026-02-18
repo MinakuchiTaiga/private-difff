@@ -11,12 +11,14 @@
 - 差分サマリー（追加・削除・維持セグメント）
 - Markdown(diff) ダウンロード
 - 印刷向け2カラムページ生成（ブラウザ印刷でPDF化）
+- `.txt` 読み込み上限（20MB/ファイル）
 
 ## プライバシー方針
 - サーバーサイド処理なし
 - アプリ側で通信API（`fetch` / `XMLHttpRequest` / `sendBeacon` / `WebSocket`）を使わない
 - `localStorage` / `sessionStorage` / `IndexedDB` を使わない
 - タブを閉じると入力データと差分結果は消える
+- 本番配布時の `Content-Security-Policy` で `connect-src 'self'` を適用
 
 ## 技術スタック
 - Package manager: `pnpm`
