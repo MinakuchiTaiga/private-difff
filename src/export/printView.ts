@@ -32,6 +32,7 @@ export function buildPrintableTwoColumnHtml(
   rightText: string,
   options: PrintOptions,
 ): string {
+  const generatedAt = formatGeneratedAt(new Date());
   const rows = buildRows(leftText, rightText, options);
   const leftStats = calculateTextStats(leftText);
   const rightStats = calculateTextStats(rightText);
@@ -121,6 +122,19 @@ export function buildPrintableTwoColumnHtml(
         display: inline-flex;
         align-items: center;
         gap: 6px;
+      }
+      .header-meta {
+        margin: 4px 0 0;
+        font-size: 10px;
+        color: #8a8a8a;
+        text-align: right;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .header-right {
+        display: grid;
+        justify-items: end;
       }
       main {
         padding: 14px;
@@ -264,7 +278,10 @@ export function buildPrintableTwoColumnHtml(
   <body>
     <header>
       <h1>${icon("printer")}private-difff 印刷ビュー</h1>
-      <p class="print-tip">${icon("file")}ブラウザの印刷機能でPDF化してください</p>
+      <div class="header-right">
+        <p class="print-tip">${icon("file")}ブラウザの印刷機能でPDF化してください</p>
+        <p class="header-meta">${icon("clock")}生成日時: ${escapeHtml(generatedAt)}</p>
+      </div>
     </header>
     <main>
       <section class="legend">
@@ -308,7 +325,7 @@ export function buildPrintableTwoColumnHtml(
 </html>`;
 }
 
-function icon(name: "printer" | "file" | "left" | "right"): string {
+function icon(name: "printer" | "file" | "left" | "right" | "clock"): string {
   const common =
     'class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 
@@ -321,7 +338,17 @@ function icon(name: "printer" | "file" | "left" | "right"): string {
   if (name === "left") {
     return `<svg ${common}><path d="M15 18 9 12l6-6"/><path d="M9 12h11"/></svg>`;
   }
+  if (name === "clock") {
+    return `<svg ${common}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+  }
   return `<svg ${common}><path d="m9 18 6-6-6-6"/><path d="M15 12H4"/></svg>`;
+}
+
+function formatGeneratedAt(date: Date): string {
+  return new Intl.DateTimeFormat("ja-JP", {
+    dateStyle: "medium",
+    timeStyle: "medium",
+  }).format(date);
 }
 
 function buildRows(leftText: string, rightText: string, options: PrintOptions): TwoColumnRow[] {
