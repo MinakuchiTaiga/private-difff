@@ -117,7 +117,10 @@ export function renderApp(root: HTMLElement): void {
               </span>
             </span>
           </p>
-          <h1>private-difff</h1>
+          <h1 class="brand-title">
+            <img src="/logo.svg" alt="" class="brand-logo" />
+            <span>private-difff</span>
+          </h1>
         </div>
         <div class="topbar-links">
           <p class="memory-chip">${icon("chip")}メモリのみ保持 • タブを閉じると消去されます</p>

@@ -107,6 +107,18 @@ body::before {
   text-shadow: 0 1px 0 rgb(34 56 53 / 0.2);
 }
 
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: #f5f0e4;
