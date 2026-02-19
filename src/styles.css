@@ -118,6 +118,73 @@ body::before {
   gap: 6px;
 }
 
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tooltip-trigger {
+  border: 0;
+  background: rgb(45 72 67 / 0.2);
+  color: #fff6e8;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 9px);
+  transform: translateX(-50%);
+  width: min(320px, calc(100vw - 32px));
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / 0.45);
+  background: #29413d;
+  color: #f7efe0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-transform: none;
+  box-shadow: 0 12px 24px -16px rgb(15 22 20 / 0.6);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 140ms ease;
+  z-index: 5;
+}
+
+.tooltip::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 11px;
+  height: 11px;
+  transform: translateX(-50%) rotate(45deg);
+  background: #29413d;
+  border-left: 1px solid rgb(255 255 255 / 0.35);
+  border-top: 1px solid rgb(255 255 255 / 0.35);
+}
+
+.tooltip-wrap:hover .tooltip,
+.tooltip-wrap:focus-within .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.topbar-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .memory-chip {
   margin: 0;
   border: 1px solid rgb(255 255 255 / 0.5);
@@ -130,6 +197,25 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.repo-link {
+  margin: 0;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  color: #fdf7eb;
+  background: rgb(45 72 67 / 0.2);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.repo-link:hover {
+  background: rgb(45 72 67 / 0.34);
 }
 
 .actions {
@@ -166,6 +252,13 @@ select,
   background: var(--surface);
   border-radius: 11px;
   height: 37px;
+}
+
+select:focus,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(157 189 184 / 0.45);
+  border-color: #93b7b2;
 }
 
 select,
@@ -243,17 +336,27 @@ select,
   font-size: 0.84rem;
 }
 
+.result-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .ghost-file {
   border: 1px dashed #b9a37d;
   background: #fff6e8;
   color: #5a4729;
   border-radius: 999px;
-  padding: 5px 10px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   font-size: 0.82rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
 }
 
 .ghost-file input {
@@ -280,10 +383,9 @@ textarea:focus {
 }
 
 .summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
 }
 
 .summary p {
@@ -301,6 +403,66 @@ textarea:focus {
   gap: 4px;
 }
 
+.summary-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.summary-diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-added {
+  background: #e3f4ea;
+  border-color: #9ecdb0;
+  color: #20563c;
+}
+
+.summary-removed {
+  background: #ffe4e1;
+  border-color: #e0aaa4;
+  color: #7f2920;
+}
+
+.summary-same {
+  background: #f1ede4;
+  border-color: #d8c9ab;
+  color: #5a5041;
+}
+
+.summary-stat {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--surface-strong);
+  border: 1px solid #d8c4a3;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+.summary-stat h3 {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+}
+
+.summary-stat dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 3px 10px;
+}
+
+.summary-stat dt,
+.summary-stat dd {
+  margin: 0;
+}
+
+.summary-stat dd {
+  text-align: right;
+}
+
 .i {
   width: 14px;
   height: 14px;
@@ -309,6 +471,13 @@ textarea:focus {
 
 .result {
   overflow: hidden;
+}
+
+.copyright {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #6d746f;
 }
 
 #diff-view {
@@ -360,6 +529,10 @@ textarea:focus {
     align-items: start;
   }
 
+  .topbar-links {
+    flex-wrap: wrap;
+  }
+
   .memory-chip {
     white-space: normal;
   }
@@ -367,5 +540,15 @@ textarea:focus {
   .result-head {
     flex-direction: column;
     align-items: start;
+  }
+
+  .result-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .summary-stats-grid,
+  .summary-diff-grid {
+    grid-template-columns: 1fr;
   }
 }

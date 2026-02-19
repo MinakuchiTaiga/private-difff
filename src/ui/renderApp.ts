@@ -6,10 +6,77 @@ import { buildPrintableTwoColumnHtml } from "../export/printView";
 const INITIAL_LEFT = "before line 1\nbefore line 2\nbefore line 3";
 const INITIAL_RIGHT = "before line 1\nafter line 2\nbefore line 3\nnew line 4";
 const MAX_TEXT_FILE_BYTES = 20 * 1024 * 1024;
+const ACCEPT_TEXT_FILE_TYPES = [
+  ".txt",
+  ".md",
+  ".markdown",
+  ".html",
+  ".htm",
+  ".css",
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".ts",
+  ".tsx",
+  ".jsx",
+  ".json",
+  ".jsonc",
+  ".yaml",
+  ".yml",
+  ".xml",
+  ".svg",
+  ".csv",
+  ".tsv",
+  ".ini",
+  ".conf",
+  ".config",
+  ".toml",
+  ".env",
+  ".log",
+  ".sql",
+  ".sh",
+  ".bash",
+  ".zsh",
+  ".py",
+  ".rb",
+  ".go",
+  ".java",
+  ".c",
+  ".cpp",
+  ".h",
+  ".hpp",
+  ".rs",
+  ".php",
+  ".vue",
+  ".svelte",
+  ".astro",
+  ".wsl",
+].join(",");
+
+const ALLOWED_TEXT_EXTENSIONS = new Set(
+  ACCEPT_TEXT_FILE_TYPES.split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0),
+);
+
+const ALLOWED_TEXT_MIME_TYPES = new Set([
+  "application/json",
+  "application/xml",
+  "application/javascript",
+  "application/x-javascript",
+  "application/ecmascript",
+  "application/sql",
+  "application/yaml",
+  "application/x-yaml",
+  "application/toml",
+  "application/x-sh",
+]);
 
 type IconName =
   | "lock"
   | "chip"
+  | "github"
+  | "help"
   | "compass"
   | "type"
   | "align"
@@ -29,16 +96,43 @@ export function renderApp(root: HTMLElement): void {
     <main class="page">
       <header class="topbar fade-in delay-0">
         <div class="brand-wrap">
-          <p class="eyebrow">${icon("lock")}プライバシー重視の差分ツール</p>
+          <p class="eyebrow">
+            ${icon("lock")}プライバシー重視のテキスト差分ツール
+            <span class="tooltip-wrap">
+              <button
+                type="button"
+                class="tooltip-trigger"
+                aria-label="プライバシー方針を表示"
+                aria-describedby="privacy-tooltip"
+              >
+                ${icon("help")}
+              </button>
+              <span id="privacy-tooltip" role="tooltip" class="tooltip">
+                入力テキストはブラウザ内でのみ処理されます。外部送信せず、永続ストレージにも保存しません。
+              </span>
+            </span>
+          </p>
           <h1>private-difff</h1>
         </div>
-        <p class="memory-chip">${icon("chip")}メモリのみ保持 • タブを閉じると消去</p>
+        <div class="topbar-links">
+          <p class="memory-chip">${icon("chip")}メモリのみ保持 • タブを閉じると消去</p>
+          <a
+            class="repo-link"
+            href="https://github.com/MinakuchiTaiga/private-difff"
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label="GitHubリポジトリを開く"
+            title="GitHubリポジトリ"
+          >
+            ${icon("github")}
+          </a>
+        </div>
       </header>
 
       <section class="actions card fade-in delay-1">
         <div class="control-row">
           <label class="field">
-            <span class="icon-text">${icon("compass")}モード</span>
+            <span class="icon-text">${icon("compass")}比較モード</span>
             <select id="mode">
               <option value="lines">行</option>
               <option value="words">単語</option>
@@ -46,16 +140,10 @@ export function renderApp(root: HTMLElement): void {
             </select>
           </label>
 
-          <label class="switch"><input id="ignore-case" type="checkbox" /> ${icon("type")}大文字・小文字を無視</label>
+          <label class="switch"><input id="ignore-case" type="checkbox" /> 大文字・小文字を無視</label>
           <label class="switch"
-            ><input id="ignore-whitespace" type="checkbox" /> ${icon("align")}行頭/行末の空白を無視（行モード）</label
+            ><input id="ignore-whitespace" type="checkbox" /> 行頭/行末の空白を無視（行モード）</label
           >
-        </div>
-
-        <div class="control-row">
-          <button id="run-diff" class="btn primary">${icon("bolt")}差分を更新</button>
-          <button id="download-markdown" class="btn">${icon("fileCode")}Markdown(diff)を保存</button>
-          <button id="open-print" class="btn">${icon("printer")}印刷レイアウトを開く（PDF化）</button>
         </div>
       </section>
 
@@ -63,9 +151,9 @@ export function renderApp(root: HTMLElement): void {
         <article class="card editor">
           <div class="editor-head">
             <h2>${icon("file")}変更前テキスト</h2>
-            <label class="ghost-file">
-              ${icon("folder")}.txt読込
-              <input id="left-file" type="file" accept=".txt,text/plain" />
+            <label class="ghost-file" aria-label="変更前テキストのファイルを読み込む" title="ファイルを読み込む">
+              ${icon("folder")}
+              <input id="left-file" type="file" accept="${ACCEPT_TEXT_FILE_TYPES}" />
             </label>
           </div>
           <textarea id="left-text" spellcheck="false">${INITIAL_LEFT}</textarea>
@@ -74,9 +162,9 @@ export function renderApp(root: HTMLElement): void {
         <article class="card editor">
           <div class="editor-head">
             <h2>${icon("file")}変更後テキスト</h2>
-            <label class="ghost-file">
-              ${icon("folder")}.txt読込
-              <input id="right-file" type="file" accept=".txt,text/plain" />
+            <label class="ghost-file" aria-label="変更後テキストのファイルを読み込む" title="ファイルを読み込む">
+              ${icon("folder")}
+              <input id="right-file" type="file" accept="${ACCEPT_TEXT_FILE_TYPES}" />
             </label>
           </div>
           <textarea id="right-text" spellcheck="false">${INITIAL_RIGHT}</textarea>
@@ -87,11 +175,25 @@ export function renderApp(root: HTMLElement): void {
 
       <section class="result card fade-in delay-4">
         <div class="result-head">
-          <h2>${icon("split")}差分結果</h2>
-          <p>追加/削除セグメントをインラインでハイライト表示</p>
+          <div>
+            <h2>${icon("split")}差分結果</h2>
+            <p>追加/削除をインラインでハイライト表示（入力のたびに更新）</p>
+          </div>
+          <div class="result-actions">
+            <label class="field export-field">
+              <span class="icon-text">${icon("fileCode")}エクスポート</span>
+              <select id="export-format">
+                <option value="">形式を選択</option>
+                <option value="markdown">Markdown (.diff.md)</option>
+                <option value="pdf">PDF（印刷レイアウト）</option>
+              </select>
+            </label>
+          </div>
         </div>
         <pre id="diff-view" aria-live="polite"></pre>
       </section>
+
+      <footer class="copyright fade-in delay-4">© 2026 private-difff</footer>
     </main>
   `;
 
@@ -100,6 +202,7 @@ export function renderApp(root: HTMLElement): void {
   const mode = query<HTMLSelectElement>("#mode");
   const ignoreCase = query<HTMLInputElement>("#ignore-case");
   const ignoreWhitespace = query<HTMLInputElement>("#ignore-whitespace");
+  const exportFormat = query<HTMLSelectElement>("#export-format");
   const diffView = query<HTMLElement>("#diff-view");
   const summary = query<HTMLElement>("#summary");
   const initialSnapshot = {
@@ -107,34 +210,14 @@ export function renderApp(root: HTMLElement): void {
     right: rightText.value,
   };
 
-  query("#run-diff").addEventListener("click", computeAndRender);
-
-  query("#download-markdown").addEventListener("click", () => {
-    const markdown = buildDiffMarkdown(leftText.value, rightText.value, {
-      ignoreCase: ignoreCase.checked,
-      ignoreWhitespace: ignoreWhitespace.checked,
-    });
-    downloadFile(markdown, "diff-result.diff.md", "text/markdown;charset=utf-8");
-  });
-
-  query("#open-print").addEventListener("click", () => {
-    const html = buildPrintableTwoColumnHtml(leftText.value, rightText.value, {
-      ignoreCase: ignoreCase.checked,
-      ignoreWhitespace: ignoreWhitespace.checked,
-    });
-
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const printUrl = URL.createObjectURL(blob);
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      URL.revokeObjectURL(printUrl);
-      window.alert("ポップアップを許可してから再試行してください。");
-      return;
+  exportFormat.addEventListener("change", () => {
+    if (exportFormat.value === "markdown") {
+      exportMarkdown();
     }
-
-    printWindow.opener = null;
-    printWindow.location.replace(printUrl);
-    window.setTimeout(() => URL.revokeObjectURL(printUrl), 60_000);
+    if (exportFormat.value === "pdf") {
+      openPrintableLayout();
+    }
+    exportFormat.value = "";
   });
 
   query<HTMLInputElement>("#left-file").addEventListener("change", async (event) => {
@@ -171,19 +254,79 @@ export function renderApp(root: HTMLElement): void {
   computeAndRender();
 
   function computeAndRender(): void {
+    const currentMode = mode.value as DiffMode;
     const result = createDiff(leftText.value, rightText.value, {
-      mode: mode.value as DiffMode,
+      mode: currentMode,
+      ignoreCase: ignoreCase.checked,
+      ignoreWhitespace: ignoreWhitespace.checked,
+    });
+    const leftStats = calculateTextStats(leftText.value);
+    const rightStats = calculateTextStats(rightText.value);
+    const unitLabel = getUnitLabel(currentMode);
+    const addedUnits = countUnits(result.parts, currentMode, "added");
+    const removedUnits = countUnits(result.parts, currentMode, "removed");
+    const unchangedUnits = countUnits(result.parts, currentMode, "same");
+
+    diffView.innerHTML = renderDiffHtml(result.parts);
+    summary.innerHTML = `
+      <div class="summary-stats-grid">
+        <article class="summary-stat">
+          <h3>変更前統計</h3>
+          <dl>
+            <dt>文字数</dt><dd>${leftStats.chars}</dd>
+            <dt>空白数</dt><dd>${leftStats.spaces}</dd>
+            <dt>空白込み文字数</dt><dd>${leftStats.charsWithSpaces}</dd>
+            <dt>改行数</dt><dd>${leftStats.newlines}</dd>
+            <dt>改行込み文字数</dt><dd>${leftStats.charsWithNewlines}</dd>
+            <dt>単語数</dt><dd>${leftStats.words}</dd>
+          </dl>
+        </article>
+        <article class="summary-stat">
+          <h3>変更後統計</h3>
+          <dl>
+            <dt>文字数</dt><dd>${rightStats.chars}</dd>
+            <dt>空白数</dt><dd>${rightStats.spaces}</dd>
+            <dt>空白込み文字数</dt><dd>${rightStats.charsWithSpaces}</dd>
+            <dt>改行数</dt><dd>${rightStats.newlines}</dd>
+            <dt>改行込み文字数</dt><dd>${rightStats.charsWithNewlines}</dd>
+            <dt>単語数</dt><dd>${rightStats.words}</dd>
+          </dl>
+        </article>
+      </div>
+      <div class="summary-diff-grid">
+        <p class="summary-added"><strong>${icon("plus")}追加:</strong> ${addedUnits} ${unitLabel}</p>
+        <p class="summary-removed"><strong>${icon("minus")}削除:</strong> ${removedUnits} ${unitLabel}</p>
+        <p class="summary-same"><strong>${icon("equal")}維持:</strong> ${unchangedUnits} ${unitLabel}</p>
+      </div>
+    `;
+  }
+
+  function exportMarkdown(): void {
+    const markdown = buildDiffMarkdown(leftText.value, rightText.value, {
+      ignoreCase: ignoreCase.checked,
+      ignoreWhitespace: ignoreWhitespace.checked,
+    });
+    downloadFile(markdown, "diff-result.diff.md", "text/markdown;charset=utf-8");
+  }
+
+  function openPrintableLayout(): void {
+    const html = buildPrintableTwoColumnHtml(leftText.value, rightText.value, {
       ignoreCase: ignoreCase.checked,
       ignoreWhitespace: ignoreWhitespace.checked,
     });
 
-    diffView.innerHTML = renderDiffHtml(result.parts);
-    summary.innerHTML = `
-      <p><strong>${icon("plus")}追加:</strong> ${result.summary.addedSegments} セグメント / ${result.summary.addedChars} 文字</p>
-      <p><strong>${icon("minus")}削除:</strong> ${result.summary.removedSegments} セグメント / ${result.summary.removedChars} 文字</p>
-      <p><strong>${icon("equal")}維持:</strong> ${result.summary.unchangedSegments} セグメント</p>
-      <p><strong>${icon("trash")}保存:</strong> メモリのみ（タブを閉じると消去）</p>
-    `;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const printUrl = URL.createObjectURL(blob);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      URL.revokeObjectURL(printUrl);
+      window.alert("ポップアップを許可してから再試行してください。");
+      return;
+    }
+
+    printWindow.opener = null;
+    printWindow.location.replace(printUrl);
+    window.setTimeout(() => URL.revokeObjectURL(printUrl), 60_000);
   }
 
   function handleBeforeUnload(event: BeforeUnloadEvent): void {
@@ -208,6 +351,12 @@ function icon(name: IconName): string {
   }
   if (name === "chip") {
     return `<svg ${common}><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>`;
+  }
+  if (name === "github") {
+    return `<svg ${common} viewBox="0 0 24 24" stroke-width="1.5"><path fill="currentColor" stroke="none" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48 0-.24-.01-1.03-.01-1.87-2.5.46-3.15-.61-3.35-1.17-.11-.28-.58-1.17-.99-1.41-.34-.18-.82-.62-.01-.63.76-.01 1.3.7 1.48.99.87 1.46 2.26 1.05 2.82.8.09-.63.34-1.05.61-1.29-2.22-.25-4.54-1.11-4.54-4.92 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.26.1-2.62 0 0 .84-.27 2.75 1.03a9.5 9.5 0 0 1 5 0c1.91-1.31 2.75-1.03 2.75-1.03.55 1.36.2 2.37.1 2.62.64.7 1.03 1.59 1.03 2.69 0 3.82-2.33 4.67-4.55 4.92.35.3.67.88.67 1.79 0 1.29-.01 2.33-.01 2.65 0 .26.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>`;
+  }
+  if (name === "help") {
+    return `<svg ${common}><path d="M9.4 9a2.6 2.6 0 1 1 4.6 1.7c-.6.7-1.6 1.1-1.6 2.3"/><path d="M12 17.2h.01"/></svg>`;
   }
   if (name === "compass") {
     return `<svg ${common}><circle cx="12" cy="12" r="9"/><path d="m10 14 2-4 2 4-4 0z"/></svg>`;
@@ -258,6 +407,86 @@ function renderDiffHtml(parts: Change[]): string {
     .join("");
 }
 
+function getUnitLabel(mode: DiffMode): "文字" | "単語" | "行" {
+  if (mode === "chars") {
+    return "文字";
+  }
+  if (mode === "words") {
+    return "単語";
+  }
+  return "行";
+}
+
+function countUnits(parts: Change[], mode: DiffMode, kind: "added" | "removed" | "same"): number {
+  return parts.reduce((count, part) => {
+    if (kind === "added" && !part.added) {
+      return count;
+    }
+    if (kind === "removed" && !part.removed) {
+      return count;
+    }
+    if (kind === "same" && (part.added || part.removed)) {
+      return count;
+    }
+    return count + countTextUnits(part.value, mode);
+  }, 0);
+}
+
+function countTextUnits(text: string, mode: DiffMode): number {
+  if (text.length === 0) {
+    return 0;
+  }
+
+  if (mode === "chars") {
+    return text.length;
+  }
+
+  if (mode === "words") {
+    const words = text
+      .trim()
+      .split(/\s+/u)
+      .filter((value) => value.length > 0);
+    return words.length;
+  }
+
+  const lines = text.split("\n");
+  if (lines[lines.length - 1] === "") {
+    return Math.max(lines.length - 1, 0);
+  }
+  return lines.length;
+}
+
+function calculateTextStats(text: string): {
+  chars: number;
+  spaces: number;
+  charsWithSpaces: number;
+  newlines: number;
+  charsWithNewlines: number;
+  words: number;
+} {
+  const charsWithNewlines = text.length;
+  const spaces = (text.match(/ /g) || []).length;
+  const newlines = (text.match(/\n/g) || []).length;
+  const charsWithSpaces = charsWithNewlines - newlines;
+  const chars = charsWithSpaces - spaces;
+  const words =
+    text.trim().length === 0
+      ? 0
+      : text
+          .trim()
+          .split(/\s+/u)
+          .filter((value) => value.length > 0).length;
+
+  return {
+    chars,
+    spaces,
+    charsWithSpaces,
+    newlines,
+    charsWithNewlines,
+    words,
+  };
+}
+
 async function readTextFile(file: File | undefined): Promise<string> {
   if (!file) {
     return "";
@@ -267,13 +496,18 @@ async function readTextFile(file: File | undefined): Promise<string> {
       `ファイルサイズが上限を超えています。${Math.floor(MAX_TEXT_FILE_BYTES / (1024 * 1024))}MB以下にしてください。`,
     );
   }
+  if (!isAllowedTextFile(file)) {
+    throw new Error("対応しているテキストファイルを選択してください。");
+  }
 
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("ファイル読み込みに失敗しました。"));
-    reader.readAsText(file, "utf-8");
-  });
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (isLikelyBinaryData(bytes)) {
+    throw new Error(
+      "テキストファイルとして読み込めませんでした。バイナリファイルの可能性があります。",
+    );
+  }
+
+  return decodeTextBytes(bytes);
 }
 
 function downloadFile(content: string, filename: string, type: string): void {
@@ -303,4 +537,130 @@ function query<T extends HTMLElement>(selector: string): T {
     throw new Error(`Element not found: ${selector}`);
   }
   return element;
+}
+
+function isAllowedTextFile(file: File): boolean {
+  const extension = getLowerCaseExtension(file.name);
+  if (extension && ALLOWED_TEXT_EXTENSIONS.has(extension)) {
+    return true;
+  }
+
+  if (file.type.startsWith("text/")) {
+    return true;
+  }
+
+  return ALLOWED_TEXT_MIME_TYPES.has(file.type.toLowerCase());
+}
+
+function getLowerCaseExtension(filename: string): string {
+  const dotIndex = filename.lastIndexOf(".");
+  if (dotIndex < 0 || dotIndex === filename.length - 1) {
+    return "";
+  }
+  return filename.slice(dotIndex).toLowerCase();
+}
+
+function isLikelyBinaryData(bytes: Uint8Array): boolean {
+  if (bytes.length === 0) {
+    return false;
+  }
+
+  if (hasUtf16Bom(bytes) || looksLikeUtf16WithoutBom(bytes)) {
+    return false;
+  }
+
+  const sampleLength = Math.min(bytes.length, 4096);
+  let suspiciousControls = 0;
+  for (let index = 0; index < sampleLength; index += 1) {
+    const value = bytes[index];
+    if (value === 0) {
+      return true;
+    }
+    const isControl = value < 32 && value !== 9 && value !== 10 && value !== 13;
+    if (isControl) {
+      suspiciousControls += 1;
+    }
+  }
+
+  return suspiciousControls / sampleLength > 0.3;
+}
+
+function decodeTextBytes(bytes: Uint8Array): string {
+  if (bytes.length === 0) {
+    return "";
+  }
+
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    return decodeWithEncoding(bytes, "utf-8");
+  }
+
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+    return decodeWithEncoding(bytes, "utf-16le");
+  }
+
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+    return decodeWithEncoding(bytes, "utf-16be");
+  }
+
+  if (looksLikeUtf16WithoutBom(bytes)) {
+    if (hasEvenZeroBias(bytes)) {
+      return decodeWithEncoding(bytes, "utf-16be");
+    }
+    return decodeWithEncoding(bytes, "utf-16le");
+  }
+
+  const candidates = ["utf-8", "shift_jis", "euc-jp", "iso-2022-jp"];
+  for (const encoding of candidates) {
+    try {
+      return decodeWithEncoding(bytes, encoding, true);
+    } catch {
+      // Try the next candidate encoding.
+    }
+  }
+
+  return decodeWithEncoding(bytes, "utf-8");
+}
+
+function decodeWithEncoding(bytes: Uint8Array, encoding: string, fatal = false): string {
+  const decoder = new TextDecoder(encoding, { fatal });
+  return decoder.decode(bytes);
+}
+
+function hasUtf16Bom(bytes: Uint8Array): boolean {
+  return (
+    bytes.length >= 2 &&
+    ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff))
+  );
+}
+
+function looksLikeUtf16WithoutBom(bytes: Uint8Array): boolean {
+  if (bytes.length < 4) {
+    return false;
+  }
+  const sampleLength = Math.min(bytes.length, 4096);
+  const evenZeroRatio = countZerosAtStride(bytes, 0, sampleLength);
+  const oddZeroRatio = countZerosAtStride(bytes, 1, sampleLength);
+  const hasLePattern = oddZeroRatio > 0.3 && evenZeroRatio < 0.05;
+  const hasBePattern = evenZeroRatio > 0.3 && oddZeroRatio < 0.05;
+  return hasLePattern || hasBePattern;
+}
+
+function hasEvenZeroBias(bytes: Uint8Array): boolean {
+  const sampleLength = Math.min(bytes.length, 4096);
+  return countZerosAtStride(bytes, 0, sampleLength) > countZerosAtStride(bytes, 1, sampleLength);
+}
+
+function countZerosAtStride(bytes: Uint8Array, start: number, end: number): number {
+  let zeroCount = 0;
+  let total = 0;
+  for (let index = start; index < end; index += 2) {
+    total += 1;
+    if (bytes[index] === 0) {
+      zeroCount += 1;
+    }
+  }
+  if (total === 0) {
+    return 0;
+  }
+  return zeroCount / total;
 }
