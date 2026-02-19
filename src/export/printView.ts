@@ -18,12 +18,23 @@ type TwoColumnRow = {
   right: SideRow;
 };
 
+type TextStats = {
+  chars: number;
+  spaces: number;
+  charsWithSpaces: number;
+  newlines: number;
+  charsWithNewlines: number;
+  words: number;
+};
+
 export function buildPrintableTwoColumnHtml(
   leftText: string,
   rightText: string,
   options: PrintOptions,
 ): string {
   const rows = buildRows(leftText, rightText, options);
+  const leftStats = calculateTextStats(leftText);
+  const rightStats = calculateTextStats(rightText);
 
   const rowsHtml = rows
     .map(
@@ -146,6 +157,39 @@ export function buildPrintableTwoColumnHtml(
         grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stats-card {
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+      .stats-head {
+        margin: 0 0 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #4c4c4c;
+      }
+      .stats-list {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 8px;
+        font-size: 10px;
+      }
+      .stats-list dt {
+        margin: 0;
+        color: #666;
+      }
+      .stats-list dd {
+        margin: 0;
+        font-weight: 600;
+        color: #262626;
+      }
       .col-head {
         padding: 2px 2px 6px;
         font-size: 10px;
@@ -228,9 +272,33 @@ export function buildPrintableTwoColumnHtml(
         <span class="pill"><span class="swatch added"></span>追加 (+)</span>
         <span class="pill"><span class="swatch removed"></span>削除 (-)</span>
       </section>
+      <section class="stats">
+        <article class="stats-card">
+          <h2 class="stats-head">変更前テキスト統計</h2>
+          <dl class="stats-list">
+            <dt>文字数</dt><dd>${leftStats.chars}</dd>
+            <dt>空白数</dt><dd>${leftStats.spaces}</dd>
+            <dt>空白込み文字数</dt><dd>${leftStats.charsWithSpaces}</dd>
+            <dt>改行数</dt><dd>${leftStats.newlines}</dd>
+            <dt>改行込み文字数</dt><dd>${leftStats.charsWithNewlines}</dd>
+            <dt>単語数</dt><dd>${leftStats.words}</dd>
+          </dl>
+        </article>
+        <article class="stats-card">
+          <h2 class="stats-head">変更後テキスト統計</h2>
+          <dl class="stats-list">
+            <dt>文字数</dt><dd>${rightStats.chars}</dd>
+            <dt>空白数</dt><dd>${rightStats.spaces}</dd>
+            <dt>空白込み文字数</dt><dd>${rightStats.charsWithSpaces}</dd>
+            <dt>改行数</dt><dd>${rightStats.newlines}</dd>
+            <dt>改行込み文字数</dt><dd>${rightStats.charsWithNewlines}</dd>
+            <dt>単語数</dt><dd>${rightStats.words}</dd>
+          </dl>
+        </article>
+      </section>
       <section class="cols">
-        <div class="col-head">${icon("left")}左</div>
-        <div class="col-head">${icon("right")}右</div>
+        <div class="col-head">${icon("left")}変更前</div>
+        <div class="col-head">${icon("right")}変更後</div>
       </section>
       <section class="rows">
         ${rowsHtml}
@@ -463,4 +531,27 @@ function normalizeLine(line: string, options: PrintOptions): string {
     normalized = normalized.toLowerCase();
   }
   return normalized;
+}
+
+function calculateTextStats(text: string): TextStats {
+  const normalizedNewlines = text.replaceAll(/\r\n?/g, "\n");
+  const newlineMatches = normalizedNewlines.match(/\n/g);
+  const spaceMatches = normalizedNewlines.match(/[^\S\n]/g);
+  const nonWhitespace = normalizedNewlines.replaceAll(/\s/g, "");
+  const words =
+    normalizedNewlines.trim().length === 0 ? 0 : normalizedNewlines.trim().split(/\s+/).length;
+
+  const chars = Array.from(nonWhitespace).length;
+  const spaces = spaceMatches?.length ?? 0;
+  const newlines = newlineMatches?.length ?? 0;
+  const charsWithSpaces = chars + spaces;
+
+  return {
+    chars,
+    spaces,
+    charsWithSpaces,
+    newlines,
+    charsWithNewlines: charsWithSpaces + newlines,
+    words,
+  };
 }

@@ -62,7 +62,7 @@ export function renderApp(root: HTMLElement): void {
       <section class="editor-grid fade-in delay-2">
         <article class="card editor">
           <div class="editor-head">
-            <h2>${icon("file")}左テキスト</h2>
+            <h2>${icon("file")}変更前テキスト</h2>
             <label class="ghost-file">
               ${icon("folder")}.txt読込
               <input id="left-file" type="file" accept=".txt,text/plain" />
@@ -73,7 +73,7 @@ export function renderApp(root: HTMLElement): void {
 
         <article class="card editor">
           <div class="editor-head">
-            <h2>${icon("file")}右テキスト</h2>
+            <h2>${icon("file")}変更後テキスト</h2>
             <label class="ghost-file">
               ${icon("folder")}.txt読込
               <input id="right-file" type="file" accept=".txt,text/plain" />
