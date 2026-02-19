@@ -102,6 +102,10 @@ export function renderApp(root: HTMLElement): void {
   const ignoreWhitespace = query<HTMLInputElement>("#ignore-whitespace");
   const diffView = query<HTMLElement>("#diff-view");
   const summary = query<HTMLElement>("#summary");
+  const initialSnapshot = {
+    left: leftText.value,
+    right: rightText.value,
+  };
 
   query("#run-diff").addEventListener("click", computeAndRender);
 
@@ -162,6 +166,7 @@ export function renderApp(root: HTMLElement): void {
   mode.addEventListener("change", computeAndRender);
   ignoreCase.addEventListener("change", computeAndRender);
   ignoreWhitespace.addEventListener("change", computeAndRender);
+  window.addEventListener("beforeunload", handleBeforeUnload);
 
   computeAndRender();
 
@@ -179,6 +184,18 @@ export function renderApp(root: HTMLElement): void {
       <p><strong>${icon("equal")}維持:</strong> ${result.summary.unchangedSegments} セグメント</p>
       <p><strong>${icon("trash")}保存:</strong> メモリのみ（タブを閉じると消去）</p>
     `;
+  }
+
+  function handleBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!hasUnsavedTextChanges()) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = "";
+  }
+
+  function hasUnsavedTextChanges(): boolean {
+    return leftText.value !== initialSnapshot.left || rightText.value !== initialSnapshot.right;
   }
 }
 
