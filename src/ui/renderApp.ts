@@ -120,7 +120,7 @@ export function renderApp(root: HTMLElement): void {
           <h1>private-difff</h1>
         </div>
         <div class="topbar-links">
-          <p class="memory-chip">${icon("chip")}メモリのみ保持 • タブを閉じると消去</p>
+          <p class="memory-chip">${icon("chip")}メモリのみ保持 • タブを閉じると消去されます</p>
           <a
             class="repo-link"
             href="https://github.com/MinakuchiTaiga/private-difff"
@@ -164,18 +164,24 @@ export function renderApp(root: HTMLElement): void {
         <div class="result-head">
           <div class="result-title">
             <h2>${icon("split")}差分結果</h2>
-            <p>追加/削除をインラインでハイライト表示（入力のたびに更新）</p>
+            <p>追加/削除の差分は入力のたびに更新されます</p>
           </div>
           <div class="result-toolbar">
             <div class="result-settings">
-              <div class="toggle-group" role="group" aria-label="比較モード">
-                <button type="button" class="toggle-btn" data-mode="lines">行</button>
-                <button type="button" class="toggle-btn" data-mode="words">単語</button>
-                <button type="button" class="toggle-btn" data-mode="chars">文字</button>
+              <div class="toggle-block">
+                <span class="toggle-label">比較モード</span>
+                <div class="toggle-group" role="group" aria-label="比較モード">
+                  <button type="button" class="toggle-btn" data-mode="lines">行</button>
+                  <button type="button" class="toggle-btn" data-mode="words">単語</button>
+                  <button type="button" class="toggle-btn" data-mode="chars">文字</button>
+                </div>
               </div>
-              <div class="toggle-group" role="group" aria-label="表示">
-                <button type="button" class="toggle-btn" data-layout="single">1列</button>
-                <button type="button" class="toggle-btn" data-layout="double">2列</button>
+              <div class="toggle-block">
+                <span class="toggle-label">表示</span>
+                <div class="toggle-group" role="group" aria-label="表示">
+                  <button type="button" class="toggle-btn" data-layout="single">1列</button>
+                  <button type="button" class="toggle-btn" data-layout="double">2列</button>
+                </div>
               </div>
             </div>
             <div class="result-quick-actions">
@@ -380,25 +386,23 @@ export function renderApp(root: HTMLElement): void {
     summary.innerHTML = `
       <div class="summary-stats-grid">
         <article class="summary-stat">
-          <h3>変更前統計</h3>
+          <h3>変更前</h3>
           <dl>
-            <dt>文字数</dt><dd>${leftStats.chars}</dd>
-            <dt>空白数</dt><dd>${leftStats.spaces}</dd>
-            <dt>空白込み文字数</dt><dd>${leftStats.charsWithSpaces}</dd>
-            <dt>改行数</dt><dd>${leftStats.newlines}</dd>
-            <dt>改行込み文字数</dt><dd>${leftStats.charsWithNewlines}</dd>
+            <dt>行数</dt><dd>${leftStats.lines}</dd>
             <dt>単語数</dt><dd>${leftStats.words}</dd>
+            <dt>文字数</dt><dd>${leftStats.chars}</dd>
+            <dt>文字数（空白込み）</dt><dd>${leftStats.charsWithSpaces}</dd>
+            <dt>文字数（空白・改行込み）</dt><dd>${leftStats.charsWithNewlines}</dd>
           </dl>
         </article>
         <article class="summary-stat">
-          <h3>変更後統計</h3>
+          <h3>変更後</h3>
           <dl>
-            <dt>文字数</dt><dd>${rightStats.chars}</dd>
-            <dt>空白数</dt><dd>${rightStats.spaces}</dd>
-            <dt>空白込み文字数</dt><dd>${rightStats.charsWithSpaces}</dd>
-            <dt>改行数</dt><dd>${rightStats.newlines}</dd>
-            <dt>改行込み文字数</dt><dd>${rightStats.charsWithNewlines}</dd>
+            <dt>行数</dt><dd>${rightStats.lines}</dd>
             <dt>単語数</dt><dd>${rightStats.words}</dd>
+            <dt>文字数</dt><dd>${rightStats.chars}</dd>
+            <dt>文字数（空白込み）</dt><dd>${rightStats.charsWithSpaces}</dd>
+            <dt>文字数（空白・改行込み）</dt><dd>${rightStats.charsWithNewlines}</dd>
           </dl>
         </article>
       </div>
@@ -706,6 +710,7 @@ function calculateTextStats(text: string): {
   chars: number;
   spaces: number;
   charsWithSpaces: number;
+  lines: number;
   newlines: number;
   charsWithNewlines: number;
   words: number;
@@ -715,6 +720,7 @@ function calculateTextStats(text: string): {
   const newlines = (text.match(/\n/g) || []).length;
   const charsWithSpaces = charsWithNewlines - newlines;
   const chars = charsWithSpaces - spaces;
+  const lines = countLines(text);
   const words =
     text.trim().length === 0
       ? 0
@@ -727,10 +733,22 @@ function calculateTextStats(text: string): {
     chars,
     spaces,
     charsWithSpaces,
+    lines,
     newlines,
     charsWithNewlines,
     words,
   };
+}
+
+function countLines(text: string): number {
+  if (text.length === 0) {
+    return 0;
+  }
+  const lines = text.split("\n");
+  if (lines[lines.length - 1] === "") {
+    return Math.max(lines.length - 1, 0);
+  }
+  return lines.length;
 }
 
 async function readTextFile(file: File | undefined): Promise<string> {

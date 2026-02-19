@@ -22,6 +22,7 @@ type TextStats = {
   chars: number;
   spaces: number;
   charsWithSpaces: number;
+  lines: number;
   newlines: number;
   charsWithNewlines: number;
   words: number;
@@ -291,25 +292,23 @@ export function buildPrintableTwoColumnHtml(
       </section>
       <section class="stats">
         <article class="stats-card">
-          <h2 class="stats-head">変更前テキスト統計</h2>
+          <h2 class="stats-head">変更前テキスト</h2>
           <dl class="stats-list">
-            <dt>文字数</dt><dd>${leftStats.chars}</dd>
-            <dt>空白数</dt><dd>${leftStats.spaces}</dd>
-            <dt>空白込み文字数</dt><dd>${leftStats.charsWithSpaces}</dd>
-            <dt>改行数</dt><dd>${leftStats.newlines}</dd>
-            <dt>改行込み文字数</dt><dd>${leftStats.charsWithNewlines}</dd>
+            <dt>行数</dt><dd>${leftStats.lines}</dd>
             <dt>単語数</dt><dd>${leftStats.words}</dd>
+            <dt>文字数</dt><dd>${leftStats.chars}</dd>
+            <dt>文字数（空白込み）</dt><dd>${leftStats.charsWithSpaces}</dd>
+            <dt>文字数（空白・改行込み）</dt><dd>${leftStats.charsWithNewlines}</dd>
           </dl>
         </article>
         <article class="stats-card">
-          <h2 class="stats-head">変更後テキスト統計</h2>
+          <h2 class="stats-head">変更後テキスト</h2>
           <dl class="stats-list">
-            <dt>文字数</dt><dd>${rightStats.chars}</dd>
-            <dt>空白数</dt><dd>${rightStats.spaces}</dd>
-            <dt>空白込み文字数</dt><dd>${rightStats.charsWithSpaces}</dd>
-            <dt>改行数</dt><dd>${rightStats.newlines}</dd>
-            <dt>改行込み文字数</dt><dd>${rightStats.charsWithNewlines}</dd>
+            <dt>行数</dt><dd>${rightStats.lines}</dd>
             <dt>単語数</dt><dd>${rightStats.words}</dd>
+            <dt>文字数</dt><dd>${rightStats.chars}</dd>
+            <dt>文字数（空白込み）</dt><dd>${rightStats.charsWithSpaces}</dd>
+            <dt>文字数（空白・改行込み）</dt><dd>${rightStats.charsWithNewlines}</dd>
           </dl>
         </article>
       </section>
@@ -575,14 +574,27 @@ function calculateTextStats(text: string): TextStats {
   const chars = Array.from(nonWhitespace).length;
   const spaces = spaceMatches?.length ?? 0;
   const newlines = newlineMatches?.length ?? 0;
+  const lines = countLines(normalizedNewlines);
   const charsWithSpaces = chars + spaces;
 
   return {
     chars,
     spaces,
     charsWithSpaces,
+    lines,
     newlines,
     charsWithNewlines: charsWithSpaces + newlines,
     words,
   };
+}
+
+function countLines(text: string): number {
+  if (text.length === 0) {
+    return 0;
+  }
+  const lines = text.split("\n");
+  if (lines[lines.length - 1] === "") {
+    return Math.max(lines.length - 1, 0);
+  }
+  return lines.length;
 }

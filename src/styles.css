@@ -360,6 +360,19 @@ select,
   flex-wrap: wrap;
 }
 
+.toggle-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-label {
+  color: #6d746f;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .toggle-group {
   display: inline-flex;
   align-items: center;
