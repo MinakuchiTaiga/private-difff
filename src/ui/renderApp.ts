@@ -121,13 +121,15 @@ export function renderApp(root: HTMLElement): void {
 
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const printUrl = URL.createObjectURL(blob);
-    const printWindow = window.open(printUrl, "_blank", "noopener,noreferrer");
+    const printWindow = window.open("", "_blank");
     if (!printWindow) {
       URL.revokeObjectURL(printUrl);
       window.alert("ポップアップを許可してから再試行してください。");
       return;
     }
 
+    printWindow.opener = null;
+    printWindow.location.replace(printUrl);
     window.setTimeout(() => URL.revokeObjectURL(printUrl), 60_000);
   });
 
