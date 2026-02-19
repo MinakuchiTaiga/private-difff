@@ -5,15 +5,15 @@ export type PrintOptions = {
   ignoreWhitespace: boolean;
 };
 
-type RowKind = "same" | "added" | "removed" | "empty";
+export type RowKind = "same" | "added" | "removed" | "empty";
 
-type SideRow = {
+export type SideRow = {
   lineNumber: string;
   text: string;
   kind: RowKind;
 };
 
-type TwoColumnRow = {
+export type TwoColumnRow = {
   left: SideRow;
   right: SideRow;
 };
@@ -33,7 +33,7 @@ export function buildPrintableTwoColumnHtml(
   options: PrintOptions,
 ): string {
   const generatedAt = formatGeneratedAt(new Date());
-  const rows = buildRows(leftText, rightText, options);
+  const rows = buildTwoColumnRows(leftText, rightText, options);
   const leftStats = calculateTextStats(leftText);
   const rightStats = calculateTextStats(rightText);
 
@@ -351,7 +351,11 @@ function formatGeneratedAt(date: Date): string {
   }).format(date);
 }
 
-function buildRows(leftText: string, rightText: string, options: PrintOptions): TwoColumnRow[] {
+export function buildTwoColumnRows(
+  leftText: string,
+  rightText: string,
+  options: PrintOptions,
+): TwoColumnRow[] {
   const changes = diffLines(leftText, rightText, {
     ignoreCase: options.ignoreCase,
     ignoreWhitespace: options.ignoreWhitespace,

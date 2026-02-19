@@ -1,7 +1,10 @@
 import type { Change } from "diff";
 import { type DiffMode, createDiff } from "../diff/diffEngine";
+import { buildDiffHtml } from "../export/html";
+import { buildDiffJson } from "../export/json";
 import { buildDiffMarkdown } from "../export/markdown";
-import { buildPrintableTwoColumnHtml } from "../export/printView";
+import { buildPrintableTwoColumnHtml, buildTwoColumnRows } from "../export/printView";
+import { buildDiffText } from "../export/text";
 
 const INITIAL_LEFT = "before line 1\nbefore line 2\nbefore line 3";
 const INITIAL_RIGHT = "before line 1\nafter line 2\nbefore line 3\nnew line 4";
@@ -86,6 +89,8 @@ type IconName =
   | "file"
   | "folder"
   | "split"
+  | "layout"
+  | "settings"
   | "plus"
   | "minus"
   | "equal"
@@ -129,24 +134,6 @@ export function renderApp(root: HTMLElement): void {
         </div>
       </header>
 
-      <section class="actions card fade-in delay-1">
-        <div class="control-row">
-          <label class="field">
-            <span class="icon-text">${icon("compass")}比較モード</span>
-            <select id="mode">
-              <option value="lines">行</option>
-              <option value="words">単語</option>
-              <option value="chars">文字</option>
-            </select>
-          </label>
-
-          <label class="switch"><input id="ignore-case" type="checkbox" /> 大文字・小文字を無視</label>
-          <label class="switch"
-            ><input id="ignore-whitespace" type="checkbox" /> 行頭/行末の空白を無視（行モード）</label
-          >
-        </div>
-      </section>
-
       <section class="editor-grid fade-in delay-2">
         <article class="card editor">
           <div class="editor-head">
@@ -175,22 +162,74 @@ export function renderApp(root: HTMLElement): void {
 
       <section class="result card fade-in delay-4">
         <div class="result-head">
-          <div>
+          <div class="result-title">
             <h2>${icon("split")}差分結果</h2>
             <p>追加/削除をインラインでハイライト表示（入力のたびに更新）</p>
           </div>
-          <div class="result-actions">
-            <label class="field export-field">
-              <span class="icon-text">${icon("fileCode")}エクスポート</span>
-              <select id="export-format">
-                <option value="">形式を選択</option>
-                <option value="markdown">Markdown (.diff.md)</option>
-                <option value="pdf">PDF（印刷レイアウト）</option>
-              </select>
-            </label>
+          <div class="result-toolbar">
+            <div class="result-settings">
+              <div class="toggle-group" role="group" aria-label="比較モード">
+                <button type="button" class="toggle-btn" data-mode="lines">行</button>
+                <button type="button" class="toggle-btn" data-mode="words">単語</button>
+                <button type="button" class="toggle-btn" data-mode="chars">文字</button>
+              </div>
+              <div class="toggle-group" role="group" aria-label="表示">
+                <button type="button" class="toggle-btn" data-layout="single">1列</button>
+                <button type="button" class="toggle-btn" data-layout="double">2列</button>
+              </div>
+            </div>
+            <div class="result-quick-actions">
+              <div class="icon-menu">
+                <button
+                  id="export-trigger"
+                  type="button"
+                  class="icon-btn"
+                  aria-label="エクスポート"
+                  title="エクスポート"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="export-menu"
+                >
+                  ${icon("fileCode")}
+                </button>
+                <div id="export-menu" class="mini-menu" role="menu" hidden>
+                  <button type="button" data-export="markdown" role="menuitem">Markdown (.diff.md)</button>
+                  <button type="button" data-export="text" role="menuitem">Text (.diff.txt)</button>
+                  <button type="button" data-export="json" role="menuitem">JSON (.diff.json)</button>
+                  <button type="button" data-export="html" role="menuitem">HTML (.diff.html)</button>
+                  <button type="button" data-export="pdf" role="menuitem">PDF（印刷レイアウト）</button>
+                </div>
+              </div>
+              <button
+                id="options-trigger"
+                type="button"
+                class="icon-btn"
+                aria-label="オプション"
+                title="オプション"
+              >
+                ${icon("settings")}
+              </button>
+            </div>
           </div>
         </div>
+        <dialog id="options-modal" class="mini-modal">
+          <form method="dialog" class="mini-modal-card">
+            <header class="mini-modal-head">
+              <h3>オプション</h3>
+              <button type="submit" class="mini-close">閉じる</button>
+            </header>
+            <div class="mini-modal-body">
+              <label class="switch"
+                ><input id="ignore-case" type="checkbox" /> 大文字・小文字の違いを無視する</label
+              >
+              <label class="switch"
+                ><input id="ignore-whitespace" type="checkbox" /> 行頭/行末の空白を無視する（行モードのみ）</label
+              >
+            </div>
+          </form>
+        </dialog>
         <pre id="diff-view" aria-live="polite"></pre>
+        <section id="diff-view-two-column" class="diff-two-column" hidden aria-live="polite"></section>
       </section>
 
       <footer class="copyright fade-in delay-4">© 2026 private-difff</footer>
@@ -199,26 +238,88 @@ export function renderApp(root: HTMLElement): void {
 
   const leftText = query<HTMLTextAreaElement>("#left-text");
   const rightText = query<HTMLTextAreaElement>("#right-text");
-  const mode = query<HTMLSelectElement>("#mode");
   const ignoreCase = query<HTMLInputElement>("#ignore-case");
   const ignoreWhitespace = query<HTMLInputElement>("#ignore-whitespace");
-  const exportFormat = query<HTMLSelectElement>("#export-format");
+  const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-mode]"));
+  const layoutButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-layout]"));
+  const exportTrigger = query<HTMLButtonElement>("#export-trigger");
+  const exportMenu = query<HTMLElement>("#export-menu");
+  const optionsTrigger = query<HTMLButtonElement>("#options-trigger");
+  const optionsModal = query<HTMLDialogElement>("#options-modal");
   const diffView = query<HTMLElement>("#diff-view");
+  const diffViewTwoColumn = query<HTMLElement>("#diff-view-two-column");
   const summary = query<HTMLElement>("#summary");
   const initialSnapshot = {
     left: leftText.value,
     right: rightText.value,
   };
+  let currentMode: DiffMode = "lines";
+  let currentLayout: "single" | "double" = "single";
 
-  exportFormat.addEventListener("change", () => {
-    if (exportFormat.value === "markdown") {
-      exportMarkdown();
-    }
-    if (exportFormat.value === "pdf") {
-      openPrintableLayout();
-    }
-    exportFormat.value = "";
+  exportTrigger.addEventListener("click", () => {
+    const willOpen = exportMenu.hidden;
+    exportMenu.hidden = !willOpen;
+    exportTrigger.setAttribute("aria-expanded", String(willOpen));
   });
+
+  exportMenu.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLButtonElement)) {
+      return;
+    }
+    const format = target.dataset.export;
+    if (!format) {
+      return;
+    }
+    exportByFormat(format);
+    closeExportMenu();
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as Node | null;
+    if (!target) {
+      return;
+    }
+    if (!exportMenu.hidden && !exportMenu.contains(target) && !exportTrigger.contains(target)) {
+      closeExportMenu();
+    }
+  });
+
+  optionsTrigger.addEventListener("click", () => {
+    optionsModal.showModal();
+  });
+
+  optionsModal.addEventListener("click", (event) => {
+    const target = event.target as Node;
+    if (target === optionsModal) {
+      optionsModal.close();
+    }
+  });
+
+  for (const button of modeButtons) {
+    button.addEventListener("click", () => {
+      const value = button.dataset.mode as DiffMode | undefined;
+      if (!value || value === currentMode) {
+        return;
+      }
+      currentMode = value;
+      computeAndRender();
+    });
+  }
+
+  for (const button of layoutButtons) {
+    button.addEventListener("click", () => {
+      if (button.disabled) {
+        return;
+      }
+      const value = button.dataset.layout as "single" | "double" | undefined;
+      if (!value || value === currentLayout) {
+        return;
+      }
+      currentLayout = value;
+      computeAndRender();
+    });
+  }
 
   query<HTMLInputElement>("#left-file").addEventListener("change", async (event) => {
     const input = event.currentTarget as HTMLInputElement;
@@ -246,7 +347,6 @@ export function renderApp(root: HTMLElement): void {
 
   leftText.addEventListener("input", computeAndRender);
   rightText.addEventListener("input", computeAndRender);
-  mode.addEventListener("change", computeAndRender);
   ignoreCase.addEventListener("change", computeAndRender);
   ignoreWhitespace.addEventListener("change", computeAndRender);
   window.addEventListener("beforeunload", handleBeforeUnload);
@@ -254,7 +354,8 @@ export function renderApp(root: HTMLElement): void {
   computeAndRender();
 
   function computeAndRender(): void {
-    const currentMode = mode.value as DiffMode;
+    updateModeDependentControls(currentMode);
+    syncToggleButtons();
     const result = createDiff(leftText.value, rightText.value, {
       mode: currentMode,
       ignoreCase: ignoreCase.checked,
@@ -268,6 +369,14 @@ export function renderApp(root: HTMLElement): void {
     const unchangedUnits = countUnits(result.parts, currentMode, "same");
 
     diffView.innerHTML = renderDiffHtml(result.parts);
+    diffViewTwoColumn.innerHTML = renderTwoColumnDiffHtml(leftText.value, rightText.value, {
+      ignoreCase: ignoreCase.checked,
+      ignoreWhitespace: ignoreWhitespace.checked,
+    });
+
+    const isSingleLayout = currentLayout === "single";
+    diffView.hidden = !isSingleLayout;
+    diffViewTwoColumn.hidden = isSingleLayout;
     summary.innerHTML = `
       <div class="summary-stats-grid">
         <article class="summary-stat">
@@ -301,12 +410,66 @@ export function renderApp(root: HTMLElement): void {
     `;
   }
 
+  function exportByFormat(format: string): void {
+    if (format === "markdown") {
+      exportMarkdown();
+      return;
+    }
+    if (format === "text") {
+      exportText();
+      return;
+    }
+    if (format === "json") {
+      exportJson();
+      return;
+    }
+    if (format === "html") {
+      exportHtml();
+      return;
+    }
+    if (format === "pdf") {
+      openPrintableLayout();
+    }
+  }
+
+  function closeExportMenu(): void {
+    exportMenu.hidden = true;
+    exportTrigger.setAttribute("aria-expanded", "false");
+  }
+
   function exportMarkdown(): void {
     const markdown = buildDiffMarkdown(leftText.value, rightText.value, {
       ignoreCase: ignoreCase.checked,
       ignoreWhitespace: ignoreWhitespace.checked,
     });
     downloadFile(markdown, "diff-result.diff.md", "text/markdown;charset=utf-8");
+  }
+
+  function exportText(): void {
+    const plainText = buildDiffText(leftText.value, rightText.value, {
+      mode: currentMode,
+      ignoreCase: ignoreCase.checked,
+      ignoreWhitespace: ignoreWhitespace.checked,
+    });
+    downloadFile(plainText, "diff-result.diff.txt", "text/plain;charset=utf-8");
+  }
+
+  function exportJson(): void {
+    const json = buildDiffJson(leftText.value, rightText.value, {
+      mode: currentMode,
+      ignoreCase: ignoreCase.checked,
+      ignoreWhitespace: ignoreWhitespace.checked,
+    });
+    downloadFile(json, "diff-result.diff.json", "application/json;charset=utf-8");
+  }
+
+  function exportHtml(): void {
+    const html = buildDiffHtml(leftText.value, rightText.value, {
+      mode: currentMode,
+      ignoreCase: ignoreCase.checked,
+      ignoreWhitespace: ignoreWhitespace.checked,
+    });
+    downloadFile(html, "diff-result.diff.html", "text/html;charset=utf-8");
   }
 
   function openPrintableLayout(): void {
@@ -340,6 +503,30 @@ export function renderApp(root: HTMLElement): void {
   function hasUnsavedTextChanges(): boolean {
     return leftText.value !== initialSnapshot.left || rightText.value !== initialSnapshot.right;
   }
+
+  function updateModeDependentControls(currentMode: DiffMode): void {
+    const isLineMode = currentMode === "lines";
+    ignoreWhitespace.disabled = !isLineMode;
+    for (const button of layoutButtons) {
+      button.disabled = !isLineMode;
+    }
+    if (!isLineMode && currentLayout !== "single") {
+      currentLayout = "single";
+    }
+  }
+
+  function syncToggleButtons(): void {
+    for (const button of modeButtons) {
+      const isActive = button.dataset.mode === currentMode;
+      button.setAttribute("aria-pressed", String(isActive));
+      button.dataset.active = isActive ? "true" : "false";
+    }
+    for (const button of layoutButtons) {
+      const isActive = button.dataset.layout === currentLayout;
+      button.setAttribute("aria-pressed", String(isActive));
+      button.dataset.active = isActive ? "true" : "false";
+    }
+  }
 }
 
 function icon(name: IconName): string {
@@ -371,7 +558,7 @@ function icon(name: IconName): string {
     return `<svg ${common}><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`;
   }
   if (name === "fileCode") {
-    return `<svg ${common}><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/><path d="m10 13-2 2 2 2M14 13l2 2-2 2"/></svg>`;
+    return `<svg ${common}><path d="M12 16V4"/><path d="m8 8 4-4 4 4"/><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg>`;
   }
   if (name === "printer") {
     return `<svg ${common}><path d="M6 9V4h12v5"/><rect x="6" y="14" width="12" height="7" rx="1"/><path d="M6 17H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/></svg>`;
@@ -384,6 +571,12 @@ function icon(name: IconName): string {
   }
   if (name === "split") {
     return `<svg ${common}><path d="M6 3v18M18 3v18M10 7h8M10 17h8"/></svg>`;
+  }
+  if (name === "layout") {
+    return `<svg ${common}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/></svg>`;
+  }
+  if (name === "settings") {
+    return `<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1.8 1.8 0 1 1-3.6 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a1.8 1.8 0 1 1 0-3.6h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a1.8 1.8 0 1 1 3.6 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a1.8 1.8 0 1 1 0 3.6h-.2a1 1 0 0 0-.9.6Z"/></svg>`;
   }
   if (name === "plus") {
     return `<svg ${common}><path d="M12 5v14M5 12h14"/></svg>`;
@@ -405,6 +598,59 @@ function renderDiffHtml(parts: Change[]): string {
       return `<span class="${cls}">${escapeHtml(part.value)}</span>`;
     })
     .join("");
+}
+
+function renderTwoColumnDiffHtml(
+  leftText: string,
+  rightText: string,
+  options: { ignoreCase: boolean; ignoreWhitespace: boolean },
+): string {
+  const rows = buildTwoColumnRows(leftText, rightText, options);
+  const rowsHtml = rows
+    .map(
+      (row) => `
+      <article class="diff-two-column-row">
+        <section class="diff-two-column-pane ${row.left.kind}">
+          <div class="diff-two-column-gutter">${escapeHtml(row.left.lineNumber || "·")}</div>
+          <div class="diff-two-column-body">
+            <span class="diff-two-column-kind">${kindMark(row.left.kind)}</span>
+            <pre>${escapeHtml(row.left.text || " ")}</pre>
+          </div>
+        </section>
+        <section class="diff-two-column-pane ${row.right.kind}">
+          <div class="diff-two-column-gutter">${escapeHtml(row.right.lineNumber || "·")}</div>
+          <div class="diff-two-column-body">
+            <span class="diff-two-column-kind">${kindMark(row.right.kind)}</span>
+            <pre>${escapeHtml(row.right.text || " ")}</pre>
+          </div>
+        </section>
+      </article>
+    `,
+    )
+    .join("");
+
+  return `
+    <div class="diff-two-column-head">
+      <div>${icon("file")}変更前</div>
+      <div>${icon("file")}変更後</div>
+    </div>
+    <div class="diff-two-column-rows">
+      ${rowsHtml}
+    </div>
+  `;
+}
+
+function kindMark(kind: "same" | "added" | "removed" | "empty"): string {
+  if (kind === "added") {
+    return "+";
+  }
+  if (kind === "removed") {
+    return "-";
+  }
+  if (kind === "empty") {
+    return "·";
+  }
+  return "=";
 }
 
 function getUnitLabel(mode: DiffMode): "文字" | "単語" | "行" {
