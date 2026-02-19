@@ -20,6 +20,11 @@
 - タブを閉じると入力データと差分結果は消える
 - 本番配布時の `Content-Security-Policy` で `connect-src 'self'` を適用
 
+## メタ情報（共有/検索向け）
+- `index.html` に `title` / `description` を設定
+- Open Graph（`og:title`, `og:description`, `og:type`, `og:site_name`）を設定
+- X(Twitter)カード（`twitter:card`, `twitter:title`, `twitter:description`）を設定
+
 ## 技術スタック
 - Package manager: `pnpm`
 - App: TypeScript + Vite
