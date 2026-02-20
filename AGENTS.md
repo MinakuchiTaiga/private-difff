@@ -61,6 +61,11 @@
 - `pnpm run test`
 - `pnpm run build`
 
+### テストカバレッジ基準
+- 60%以上: 許容可能
+- 75%以上: 推奨
+- 90%以上: 例示的
+
 ### ローカル確認（重要）
 - `dist/index.html` を `file://` で直接開くと、ブラウザのCORS制約でJS/CSSが読み込めない。
 - 必ずHTTPサーバー経由で確認する（`pnpm run preview`）。
