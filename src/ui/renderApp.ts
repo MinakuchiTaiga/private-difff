@@ -101,8 +101,12 @@ export function renderApp(root: HTMLElement): void {
     <main class="page">
       <header class="topbar fade-in delay-0">
         <div class="brand-wrap">
+          <h1 class="brand-title">
+            <img src="./logo.svg" alt="" class="brand-logo" />
+            <span>private-difff</span>
+          </h1>
           <p class="eyebrow">
-            ${icon("lock")}プライバシー重視のテキスト差分ツール
+            プライバシー重視のテキスト差分ツール
             <span class="tooltip-wrap">
               <button
                 type="button"
@@ -113,14 +117,17 @@ export function renderApp(root: HTMLElement): void {
                 ${icon("help")}
               </button>
               <span id="privacy-tooltip" role="tooltip" class="tooltip">
-                入力テキストはブラウザ内でのみ処理されます。外部送信せず、永続ストレージにも保存しません。
+                <span class="tooltip-list">
+                  <span class="tooltip-item">入力テキストはブラウザ内でのみ処理されます。</span>
+                  <span class="tooltip-item">入力テキストのサーバーへの外部送信や永続保存は行いません。</span>
+                  <span class="tooltip-item">アクセス解析ツールやWebフォントは利用していません。</span>
+                  <span class="tooltip-item"
+                    >Github Pagesを利用しているため、通信メタデータ（IP・User-Agent等）の一部はGitHubへ送られますが、入力内容は送信されません。</span
+                  >
+                </span>
               </span>
             </span>
           </p>
-          <h1 class="brand-title">
-            <img src="/logo.svg" alt="" class="brand-logo" />
-            <span>private-difff</span>
-          </h1>
         </div>
         <div class="topbar-links">
           <p class="memory-chip">${icon("chip")}メモリのみ保持 • タブを閉じると消去されます</p>
@@ -166,7 +173,7 @@ export function renderApp(root: HTMLElement): void {
       <section class="result card fade-in delay-4">
         <div class="result-head">
           <div class="result-title">
-            <h2>${icon("split")}差分結果</h2>
+            <h2>差分結果</h2>
             <p>追加/削除の差分は入力のたびに更新されます</p>
           </div>
           <div class="result-toolbar">
@@ -318,7 +325,7 @@ export function renderApp(root: HTMLElement): void {
 
   for (const button of layoutButtons) {
     button.addEventListener("click", () => {
-      if (button.disabled) {
+      if (button.dataset.disabled === "true") {
         return;
       }
       const value = button.dataset.layout as "single" | "double" | undefined;
@@ -515,7 +522,15 @@ export function renderApp(root: HTMLElement): void {
     const isLineMode = currentMode === "lines";
     ignoreWhitespace.disabled = !isLineMode;
     for (const button of layoutButtons) {
-      button.disabled = !isLineMode;
+      const isDouble = button.dataset.layout === "double";
+      const disabled = isDouble && !isLineMode;
+      button.dataset.disabled = disabled ? "true" : "false";
+      button.setAttribute("aria-disabled", String(disabled));
+      if (disabled) {
+        button.title = "この表示は行モード時のみです";
+      } else {
+        button.removeAttribute("title");
+      }
     }
     if (!isLineMode && currentLayout !== "single") {
       currentLayout = "single";
