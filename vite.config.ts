@@ -2,6 +2,18 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   base: "./",
+  build: {
+    cssMinify: true,
+    minify: "esbuild",
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          diff: ["diff"],
+        },
+      },
+    },
+  },
   plugins: [
     {
       name: "inject-csp",

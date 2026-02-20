@@ -150,14 +150,23 @@ body::before {
   border: 0;
   background: rgb(45 72 67 / 0.2);
   color: #fff6e8;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: help;
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: center;
+}
+
+.tooltip-mark {
+  display: block;
+  transform: translateX(-1px);
 }
 
 .tooltip {
@@ -755,6 +764,12 @@ textarea:focus {
 .diff-two-column {
   padding: 13px;
   background: #fff6e7;
+}
+
+.diff-loading {
+  margin: 0;
+  color: #38544f;
+  font-size: 0.8rem;
 }
 
 .diff-two-column-head {

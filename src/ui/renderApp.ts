@@ -1,10 +1,5 @@
 import type { Change } from "diff";
 import { type DiffMode, createDiff } from "../diff/diffEngine";
-import { buildDiffHtml } from "../export/html";
-import { buildDiffJson } from "../export/json";
-import { buildDiffMarkdown } from "../export/markdown";
-import { buildPrintableTwoColumnHtml, buildTwoColumnRows } from "../export/printView";
-import { buildDiffText } from "../export/text";
 
 const INITIAL_LEFT = "before line 1\nbefore line 2\nbefore line 3";
 const INITIAL_RIGHT = "before line 1\nafter line 2\nbefore line 3\nnew line 4";
@@ -96,181 +91,43 @@ type IconName =
   | "equal"
   | "trash";
 
+let markdownModulePromise: Promise<typeof import("../export/markdown")> | undefined;
+let textModulePromise: Promise<typeof import("../export/text")> | undefined;
+let jsonModulePromise: Promise<typeof import("../export/json")> | undefined;
+let htmlModulePromise: Promise<typeof import("../export/html")> | undefined;
+let printViewModulePromise: Promise<typeof import("../export/printView")> | undefined;
+
 export function renderApp(root: HTMLElement): void {
-  root.innerHTML = `
-    <main class="page">
-      <header class="topbar fade-in delay-0">
-        <div class="brand-wrap">
-          <h1 class="brand-title">
-            <img src="./logo.svg" alt="" class="brand-logo" />
-            <span>private-difff</span>
-          </h1>
-          <p class="eyebrow">
-            プライバシー重視のテキスト差分ツール
-            <span class="tooltip-wrap">
-              <button
-                type="button"
-                class="tooltip-trigger"
-                aria-label="プライバシー方針を表示"
-                aria-describedby="privacy-tooltip"
-              >
-                ${icon("help")}
-              </button>
-              <span id="privacy-tooltip" role="tooltip" class="tooltip">
-                <span class="tooltip-list">
-                  <span class="tooltip-item">入力テキストはブラウザ内でのみ処理されます。</span>
-                  <span class="tooltip-item">入力テキストのサーバーへの外部送信や永続保存は行いません。</span>
-                  <span class="tooltip-item">アクセス解析ツールやWebフォントは利用していません。</span>
-                  <span class="tooltip-item"
-                    >Github Pagesを利用しているため、通信メタデータ（IP・User-Agent等）の一部はGitHubへ送られますが、入力内容は送信されません。</span
-                  >
-                </span>
-              </span>
-            </span>
-          </p>
-        </div>
-        <div class="topbar-links">
-          <p class="memory-chip">${icon("chip")}メモリのみ保持 • タブを閉じると消去されます</p>
-          <a
-            class="repo-link"
-            href="https://github.com/MinakuchiTaiga/private-difff"
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label="GitHubリポジトリを開く"
-            title="GitHubリポジトリ"
-          >
-            ${icon("github")}
-          </a>
-        </div>
-      </header>
+  hydrateStaticIcons(root);
 
-      <section class="editor-grid fade-in delay-2">
-        <article class="card editor">
-          <div class="editor-head">
-            <h2>${icon("file")}変更前テキスト</h2>
-            <label class="ghost-file" aria-label="変更前テキストのファイルを読み込む" title="ファイルを読み込む">
-              ${icon("folder")}
-              <input id="left-file" type="file" accept="${ACCEPT_TEXT_FILE_TYPES}" />
-            </label>
-          </div>
-          <textarea id="left-text" spellcheck="false">${INITIAL_LEFT}</textarea>
-        </article>
+  const leftText = query<HTMLTextAreaElement>("#left-text", root);
+  const rightText = query<HTMLTextAreaElement>("#right-text", root);
+  const leftFile = query<HTMLInputElement>("#left-file", root);
+  const rightFile = query<HTMLInputElement>("#right-file", root);
+  const ignoreCase = query<HTMLInputElement>("#ignore-case", root);
+  const ignoreWhitespace = query<HTMLInputElement>("#ignore-whitespace", root);
+  const modeButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-mode]"));
+  const layoutButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-layout]"));
+  const exportTrigger = query<HTMLButtonElement>("#export-trigger", root);
+  const exportMenu = query<HTMLElement>("#export-menu", root);
+  const optionsTrigger = query<HTMLButtonElement>("#options-trigger", root);
+  const optionsModal = query<HTMLDialogElement>("#options-modal", root);
+  const diffView = query<HTMLElement>("#diff-view", root);
+  const diffViewTwoColumn = query<HTMLElement>("#diff-view-two-column", root);
+  const summary = query<HTMLElement>("#summary", root);
 
-        <article class="card editor">
-          <div class="editor-head">
-            <h2>${icon("file")}変更後テキスト</h2>
-            <label class="ghost-file" aria-label="変更後テキストのファイルを読み込む" title="ファイルを読み込む">
-              ${icon("folder")}
-              <input id="right-file" type="file" accept="${ACCEPT_TEXT_FILE_TYPES}" />
-            </label>
-          </div>
-          <textarea id="right-text" spellcheck="false">${INITIAL_RIGHT}</textarea>
-        </article>
-      </section>
+  leftText.value = leftText.value || INITIAL_LEFT;
+  rightText.value = rightText.value || INITIAL_RIGHT;
+  leftFile.accept = ACCEPT_TEXT_FILE_TYPES;
+  rightFile.accept = ACCEPT_TEXT_FILE_TYPES;
 
-      <section id="summary" class="summary card fade-in delay-3"></section>
-
-      <section class="result card fade-in delay-4">
-        <div class="result-head">
-          <div class="result-title">
-            <h2>差分結果</h2>
-            <p>追加/削除の差分は入力のたびに更新されます</p>
-          </div>
-          <div class="result-toolbar">
-            <div class="result-settings">
-              <div class="toggle-block">
-                <span class="toggle-label">比較モード</span>
-                <div class="toggle-group" role="group" aria-label="比較モード">
-                  <button type="button" class="toggle-btn" data-mode="lines">行</button>
-                  <button type="button" class="toggle-btn" data-mode="words">単語</button>
-                  <button type="button" class="toggle-btn" data-mode="chars">文字</button>
-                </div>
-              </div>
-              <div class="toggle-block">
-                <span class="toggle-label">表示</span>
-                <div class="toggle-group" role="group" aria-label="表示">
-                  <button type="button" class="toggle-btn" data-layout="single">1列</button>
-                  <button type="button" class="toggle-btn" data-layout="double">2列</button>
-                </div>
-              </div>
-            </div>
-            <div class="result-quick-actions">
-              <div class="icon-menu">
-                <button
-                  id="export-trigger"
-                  type="button"
-                  class="icon-btn"
-                  aria-label="エクスポート"
-                  title="エクスポート"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-controls="export-menu"
-                >
-                  ${icon("fileCode")}
-                </button>
-                <div id="export-menu" class="mini-menu" role="menu" hidden>
-                  <button type="button" data-export="markdown" role="menuitem">Markdown (.diff.md)</button>
-                  <button type="button" data-export="text" role="menuitem">Text (.diff.txt)</button>
-                  <button type="button" data-export="json" role="menuitem">JSON (.diff.json)</button>
-                  <button type="button" data-export="html" role="menuitem">HTML (.diff.html)</button>
-                  <button type="button" data-export="pdf" role="menuitem">PDF（印刷レイアウト）</button>
-                </div>
-              </div>
-              <button
-                id="options-trigger"
-                type="button"
-                class="icon-btn"
-                aria-label="オプション"
-                title="オプション"
-              >
-                ${icon("settings")}
-              </button>
-            </div>
-          </div>
-        </div>
-        <dialog id="options-modal" class="mini-modal">
-          <form method="dialog" class="mini-modal-card">
-            <header class="mini-modal-head">
-              <h3>オプション</h3>
-              <button type="submit" class="mini-close">閉じる</button>
-            </header>
-            <div class="mini-modal-body">
-              <label class="switch"
-                ><input id="ignore-case" type="checkbox" /> 大文字・小文字の違いを無視する</label
-              >
-              <label class="switch"
-                ><input id="ignore-whitespace" type="checkbox" /> 行頭/行末の空白を無視する（行モードのみ）</label
-              >
-            </div>
-          </form>
-        </dialog>
-        <pre id="diff-view" aria-live="polite"></pre>
-        <section id="diff-view-two-column" class="diff-two-column" hidden aria-live="polite"></section>
-      </section>
-
-      <footer class="copyright fade-in delay-4">© 2026 private-difff</footer>
-    </main>
-  `;
-
-  const leftText = query<HTMLTextAreaElement>("#left-text");
-  const rightText = query<HTMLTextAreaElement>("#right-text");
-  const ignoreCase = query<HTMLInputElement>("#ignore-case");
-  const ignoreWhitespace = query<HTMLInputElement>("#ignore-whitespace");
-  const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-mode]"));
-  const layoutButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-layout]"));
-  const exportTrigger = query<HTMLButtonElement>("#export-trigger");
-  const exportMenu = query<HTMLElement>("#export-menu");
-  const optionsTrigger = query<HTMLButtonElement>("#options-trigger");
-  const optionsModal = query<HTMLDialogElement>("#options-modal");
-  const diffView = query<HTMLElement>("#diff-view");
-  const diffViewTwoColumn = query<HTMLElement>("#diff-view-two-column");
-  const summary = query<HTMLElement>("#summary");
   const initialSnapshot = {
     left: leftText.value,
     right: rightText.value,
   };
   let currentMode: DiffMode = "lines";
   let currentLayout: "single" | "double" = "single";
+  let renderVersion = 0;
 
   exportTrigger.addEventListener("click", () => {
     const willOpen = exportMenu.hidden;
@@ -287,7 +144,7 @@ export function renderApp(root: HTMLElement): void {
     if (!format) {
       return;
     }
-    exportByFormat(format);
+    void exportByFormat(format);
     closeExportMenu();
   });
 
@@ -337,7 +194,7 @@ export function renderApp(root: HTMLElement): void {
     });
   }
 
-  query<HTMLInputElement>("#left-file").addEventListener("change", async (event) => {
+  leftFile.addEventListener("change", async (event) => {
     const input = event.currentTarget as HTMLInputElement;
     try {
       leftText.value = await readTextFile(input.files?.[0]);
@@ -349,7 +206,7 @@ export function renderApp(root: HTMLElement): void {
     }
   });
 
-  query<HTMLInputElement>("#right-file").addEventListener("change", async (event) => {
+  rightFile.addEventListener("change", async (event) => {
     const input = event.currentTarget as HTMLInputElement;
     try {
       rightText.value = await readTextFile(input.files?.[0]);
@@ -370,6 +227,7 @@ export function renderApp(root: HTMLElement): void {
   computeAndRender();
 
   function computeAndRender(): void {
+    const activeRenderVersion = ++renderVersion;
     updateModeDependentControls(currentMode);
     syncToggleButtons();
     const result = createDiff(leftText.value, rightText.value, {
@@ -385,14 +243,21 @@ export function renderApp(root: HTMLElement): void {
     const unchangedUnits = countUnits(result.parts, currentMode, "same");
 
     diffView.innerHTML = renderDiffHtml(result.parts);
-    diffViewTwoColumn.innerHTML = renderTwoColumnDiffHtml(leftText.value, rightText.value, {
-      ignoreCase: ignoreCase.checked,
-      ignoreWhitespace: ignoreWhitespace.checked,
-    });
-
     const isSingleLayout = currentLayout === "single";
     diffView.hidden = !isSingleLayout;
     diffViewTwoColumn.hidden = isSingleLayout;
+    if (isSingleLayout) {
+      diffViewTwoColumn.innerHTML = "";
+    } else {
+      diffViewTwoColumn.innerHTML = '<p class="diff-loading">2カラム表示を準備中...</p>';
+      void renderTwoColumnView(
+        activeRenderVersion,
+        leftText.value,
+        rightText.value,
+        ignoreCase.checked,
+        ignoreWhitespace.checked,
+      );
+    }
     summary.innerHTML = `
       <div class="summary-stats-grid">
         <article class="summary-stat">
@@ -424,26 +289,50 @@ export function renderApp(root: HTMLElement): void {
     `;
   }
 
-  function exportByFormat(format: string): void {
-    if (format === "markdown") {
-      exportMarkdown();
+  async function exportByFormat(format: string): Promise<void> {
+    try {
+      if (format === "markdown") {
+        await exportMarkdown();
+        return;
+      }
+      if (format === "text") {
+        await exportText();
+        return;
+      }
+      if (format === "json") {
+        await exportJson();
+        return;
+      }
+      if (format === "html") {
+        await exportHtml();
+        return;
+      }
+      if (format === "pdf") {
+        await openPrintableLayout();
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "エクスポート中に問題が発生しました。";
+      window.alert(message);
+    }
+  }
+
+  async function renderTwoColumnView(
+    activeRenderVersion: number,
+    leftValue: string,
+    rightValue: string,
+    ignoreCaseChecked: boolean,
+    ignoreWhitespaceChecked: boolean,
+  ): Promise<void> {
+    const { buildTwoColumnRows } = await loadPrintViewModule();
+    if (activeRenderVersion !== renderVersion || currentLayout !== "double") {
       return;
     }
-    if (format === "text") {
-      exportText();
-      return;
-    }
-    if (format === "json") {
-      exportJson();
-      return;
-    }
-    if (format === "html") {
-      exportHtml();
-      return;
-    }
-    if (format === "pdf") {
-      openPrintableLayout();
-    }
+    const rows = buildTwoColumnRows(leftValue, rightValue, {
+      ignoreCase: ignoreCaseChecked,
+      ignoreWhitespace: ignoreWhitespaceChecked,
+    });
+    diffViewTwoColumn.innerHTML = renderTwoColumnDiffHtml(rows);
   }
 
   function closeExportMenu(): void {
@@ -451,7 +340,8 @@ export function renderApp(root: HTMLElement): void {
     exportTrigger.setAttribute("aria-expanded", "false");
   }
 
-  function exportMarkdown(): void {
+  async function exportMarkdown(): Promise<void> {
+    const { buildDiffMarkdown } = await loadMarkdownModule();
     const markdown = buildDiffMarkdown(leftText.value, rightText.value, {
       ignoreCase: ignoreCase.checked,
       ignoreWhitespace: ignoreWhitespace.checked,
@@ -459,7 +349,8 @@ export function renderApp(root: HTMLElement): void {
     downloadFile(markdown, "diff-result.diff.md", "text/markdown;charset=utf-8");
   }
 
-  function exportText(): void {
+  async function exportText(): Promise<void> {
+    const { buildDiffText } = await loadTextModule();
     const plainText = buildDiffText(leftText.value, rightText.value, {
       mode: currentMode,
       ignoreCase: ignoreCase.checked,
@@ -468,7 +359,8 @@ export function renderApp(root: HTMLElement): void {
     downloadFile(plainText, "diff-result.diff.txt", "text/plain;charset=utf-8");
   }
 
-  function exportJson(): void {
+  async function exportJson(): Promise<void> {
+    const { buildDiffJson } = await loadJsonModule();
     const json = buildDiffJson(leftText.value, rightText.value, {
       mode: currentMode,
       ignoreCase: ignoreCase.checked,
@@ -477,7 +369,8 @@ export function renderApp(root: HTMLElement): void {
     downloadFile(json, "diff-result.diff.json", "application/json;charset=utf-8");
   }
 
-  function exportHtml(): void {
+  async function exportHtml(): Promise<void> {
+    const { buildDiffHtml } = await loadHtmlModule();
     const html = buildDiffHtml(leftText.value, rightText.value, {
       mode: currentMode,
       ignoreCase: ignoreCase.checked,
@@ -486,7 +379,8 @@ export function renderApp(root: HTMLElement): void {
     downloadFile(html, "diff-result.diff.html", "text/html;charset=utf-8");
   }
 
-  function openPrintableLayout(): void {
+  async function openPrintableLayout(): Promise<void> {
+    const { buildPrintableTwoColumnHtml } = await loadPrintViewModule();
     const html = buildPrintableTwoColumnHtml(leftText.value, rightText.value, {
       ignoreCase: ignoreCase.checked,
       ignoreWhitespace: ignoreWhitespace.checked,
@@ -551,6 +445,42 @@ export function renderApp(root: HTMLElement): void {
   }
 }
 
+function hydrateStaticIcons(root: HTMLElement): void {
+  const iconElements = root.querySelectorAll<HTMLElement>("[data-icon]");
+  for (const element of iconElements) {
+    const iconName = element.dataset.icon as IconName | undefined;
+    if (!iconName) {
+      continue;
+    }
+    element.innerHTML = icon(iconName);
+  }
+}
+
+function loadMarkdownModule(): Promise<typeof import("../export/markdown")> {
+  markdownModulePromise ??= import("../export/markdown");
+  return markdownModulePromise;
+}
+
+function loadTextModule(): Promise<typeof import("../export/text")> {
+  textModulePromise ??= import("../export/text");
+  return textModulePromise;
+}
+
+function loadJsonModule(): Promise<typeof import("../export/json")> {
+  jsonModulePromise ??= import("../export/json");
+  return jsonModulePromise;
+}
+
+function loadHtmlModule(): Promise<typeof import("../export/html")> {
+  htmlModulePromise ??= import("../export/html");
+  return htmlModulePromise;
+}
+
+function loadPrintViewModule(): Promise<typeof import("../export/printView")> {
+  printViewModulePromise ??= import("../export/printView");
+  return printViewModulePromise;
+}
+
 function icon(name: IconName): string {
   const common =
     'class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
@@ -598,7 +528,7 @@ function icon(name: IconName): string {
     return `<svg ${common}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/></svg>`;
   }
   if (name === "settings") {
-    return `<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1.8 1.8 0 1 1-3.6 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a1.8 1.8 0 1 1 0-3.6h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a1.8 1.8 0 1 1 3.6 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a1.8 1.8 0 1 1 0 3.6h-.2a1 1 0 0 0-.9.6Z"/></svg>`;
+    return `<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 1.87l-.09 1.16a7.7 7.7 0 0 0-1.56.65l-.95-.63a2 2 0 0 0-2.54.2l-.31.31a2 2 0 0 0-.2 2.54l.63.95a7.7 7.7 0 0 0-.65 1.56l-1.16.09a2 2 0 0 0-1.87 2v.44a2 2 0 0 0 1.87 2l1.16.09c.16.55.38 1.08.65 1.56l-.63.95a2 2 0 0 0 .2 2.54l.31.31a2 2 0 0 0 2.54.2l.95-.63c.48.27 1.01.49 1.56.65l.09 1.16a2 2 0 0 0 2 1.87h.44a2 2 0 0 0 2-1.87l.09-1.16a7.7 7.7 0 0 0 1.56-.65l.95.63a2 2 0 0 0 2.54-.2l.31-.31a2 2 0 0 0 .2-2.54l-.63-.95c.27-.48.49-1.01.65-1.56l1.16-.09a2 2 0 0 0 1.87-2v-.44a2 2 0 0 0-1.87-2l-1.16-.09a7.7 7.7 0 0 0-.65-1.56l.63-.95a2 2 0 0 0-.2-2.54l-.31-.31a2 2 0 0 0-2.54-.2l-.95.63a7.7 7.7 0 0 0-1.56-.65l-.09-1.16a2 2 0 0 0-2-1.87z"/></svg>`;
   }
   if (name === "plus") {
     return `<svg ${common}><path d="M12 5v14M5 12h14"/></svg>`;
@@ -622,12 +552,18 @@ function renderDiffHtml(parts: Change[]): string {
     .join("");
 }
 
-function renderTwoColumnDiffHtml(
-  leftText: string,
-  rightText: string,
-  options: { ignoreCase: boolean; ignoreWhitespace: boolean },
-): string {
-  const rows = buildTwoColumnRows(leftText, rightText, options);
+type TwoColumnPane = {
+  kind: "same" | "added" | "removed" | "empty";
+  lineNumber: string;
+  text: string;
+};
+
+type TwoColumnRow = {
+  left: TwoColumnPane;
+  right: TwoColumnPane;
+};
+
+function renderTwoColumnDiffHtml(rows: TwoColumnRow[]): string {
   const rowsHtml = rows
     .map(
       (row) => `
@@ -813,8 +749,8 @@ function escapeHtml(text: string): string {
     .replaceAll("'", "&#39;");
 }
 
-function query<T extends HTMLElement>(selector: string): T {
-  const element = document.querySelector<T>(selector);
+function query<T extends HTMLElement>(selector: string, scope: ParentNode = document): T {
+  const element = scope.querySelector<T>(selector);
   if (!element) {
     throw new Error(`Element not found: ${selector}`);
   }

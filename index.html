@@ -33,7 +33,167 @@
     />
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <main class="page">
+        <header class="topbar fade-in delay-0">
+          <div class="brand-wrap">
+            <h1 class="brand-title">
+              <img src="./logo.svg" alt="" class="brand-logo" />
+              <span>private-difff</span>
+            </h1>
+            <p class="eyebrow">
+              プライバシー重視のテキスト差分ツール
+              <span class="tooltip-wrap">
+                <button
+                  type="button"
+                  class="tooltip-trigger"
+                  aria-label="プライバシー方針を表示"
+                  aria-describedby="privacy-tooltip"
+                >
+                  <span class="tooltip-mark">?</span>
+                </button>
+                <span id="privacy-tooltip" role="tooltip" class="tooltip">
+                  <span class="tooltip-list">
+                    <span class="tooltip-item">入力テキストはブラウザ内でのみ処理されます。</span>
+                    <span class="tooltip-item">入力テキストのサーバーへの外部送信や永続保存は行いません。</span>
+                    <span class="tooltip-item">アクセス解析ツールやWebフォントは利用していません。</span>
+                    <span class="tooltip-item"
+                      >Github Pagesを利用しているため、通信メタデータ（IP・User-Agent等）の一部はGitHubへ送られますが、入力内容は送信されません。</span
+                    >
+                  </span>
+                </span>
+              </span>
+            </p>
+          </div>
+          <div class="topbar-links">
+            <p class="memory-chip">
+              <span data-icon="chip" aria-hidden="true"></span>メモリのみ保持 • タブを閉じると消去されます
+            </p>
+            <a
+              class="repo-link"
+              href="https://github.com/MinakuchiTaiga/private-difff"
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="GitHubリポジトリを開く"
+              title="GitHubリポジトリ"
+            >
+              <span data-icon="github" aria-hidden="true"></span>
+            </a>
+          </div>
+        </header>
+
+        <section class="editor-grid fade-in delay-2">
+          <article class="card editor">
+            <div class="editor-head">
+              <h2><span data-icon="file" aria-hidden="true"></span>変更前テキスト</h2>
+              <label class="ghost-file" aria-label="変更前テキストのファイルを読み込む" title="ファイルを読み込む">
+                <span data-icon="folder" aria-hidden="true"></span>
+                <input id="left-file" type="file" />
+              </label>
+            </div>
+            <textarea id="left-text" spellcheck="false">before line 1
+before line 2
+before line 3</textarea>
+          </article>
+
+          <article class="card editor">
+            <div class="editor-head">
+              <h2><span data-icon="file" aria-hidden="true"></span>変更後テキスト</h2>
+              <label class="ghost-file" aria-label="変更後テキストのファイルを読み込む" title="ファイルを読み込む">
+                <span data-icon="folder" aria-hidden="true"></span>
+                <input id="right-file" type="file" />
+              </label>
+            </div>
+            <textarea id="right-text" spellcheck="false">before line 1
+after line 2
+before line 3
+new line 4</textarea>
+          </article>
+        </section>
+
+        <section id="summary" class="summary card fade-in delay-3"></section>
+
+        <section class="result card fade-in delay-4">
+          <div class="result-head">
+            <div class="result-title">
+              <h2>差分結果</h2>
+              <p>追加/削除の差分は入力のたびに更新されます</p>
+            </div>
+            <div class="result-toolbar">
+              <div class="result-settings">
+                <div class="toggle-block">
+                  <span class="toggle-label">比較モード</span>
+                  <div class="toggle-group" role="group" aria-label="比較モード">
+                    <button type="button" class="toggle-btn" data-mode="lines">行</button>
+                    <button type="button" class="toggle-btn" data-mode="words">単語</button>
+                    <button type="button" class="toggle-btn" data-mode="chars">文字</button>
+                  </div>
+                </div>
+                <div class="toggle-block">
+                  <span class="toggle-label">表示</span>
+                  <div class="toggle-group" role="group" aria-label="表示">
+                    <button type="button" class="toggle-btn" data-layout="single">1列</button>
+                    <button type="button" class="toggle-btn" data-layout="double">2列</button>
+                  </div>
+                </div>
+              </div>
+              <div class="result-quick-actions">
+                <div class="icon-menu">
+                  <button
+                    id="export-trigger"
+                    type="button"
+                    class="icon-btn"
+                    aria-label="エクスポート"
+                    title="エクスポート"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-controls="export-menu"
+                  >
+                    <span data-icon="fileCode" aria-hidden="true"></span>
+                  </button>
+                  <div id="export-menu" class="mini-menu" role="menu" hidden>
+                    <button type="button" data-export="markdown" role="menuitem">Markdown (.diff.md)</button>
+                    <button type="button" data-export="text" role="menuitem">Text (.diff.txt)</button>
+                    <button type="button" data-export="json" role="menuitem">JSON (.diff.json)</button>
+                    <button type="button" data-export="html" role="menuitem">HTML (.diff.html)</button>
+                    <button type="button" data-export="pdf" role="menuitem">PDF（印刷レイアウト）</button>
+                  </div>
+                </div>
+                <button
+                  id="options-trigger"
+                  type="button"
+                  class="icon-btn"
+                  aria-label="オプション"
+                  title="オプション"
+                >
+                  <span data-icon="settings" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <dialog id="options-modal" class="mini-modal">
+            <form method="dialog" class="mini-modal-card">
+              <header class="mini-modal-head">
+                <h3>オプション</h3>
+                <button type="submit" class="mini-close">閉じる</button>
+              </header>
+              <div class="mini-modal-body">
+                <label class="switch"
+                  ><input id="ignore-case" type="checkbox" /> 大文字・小文字の違いを無視する</label
+                >
+                <label class="switch"
+                  ><input id="ignore-whitespace" type="checkbox" /> 行頭/行末の空白を無視する（行モードのみ）</label
+                >
+              </div>
+            </form>
+          </dialog>
+          <pre id="diff-view" aria-live="polite"></pre>
+          <section id="diff-view-two-column" class="diff-two-column" hidden aria-live="polite"></section>
+        </section>
+
+        <footer class="copyright fade-in delay-4">© 2026 private-difff</footer>
+      </main>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
