@@ -1,4 +1,6 @@
 import { type DiffMode, createDiff } from "../diff/diffEngine";
+import { escapeHtml } from "../shared/html";
+import { modeLabel } from "../shared/mode";
 
 export type HtmlExportOptions = {
   mode: DiffMode;
@@ -79,23 +81,4 @@ export function buildDiffHtml(
     <pre>${body}</pre>
   </body>
 </html>`;
-}
-
-function modeLabel(mode: DiffMode): string {
-  if (mode === "chars") {
-    return "文字";
-  }
-  if (mode === "words") {
-    return "単語";
-  }
-  return "行";
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
 }

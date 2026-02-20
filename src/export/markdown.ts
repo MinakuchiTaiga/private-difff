@@ -1,4 +1,4 @@
-import { diffLines } from "diff";
+import { createLineDiff } from "../diff/lineDiff";
 
 export type MarkdownExportOptions = {
   ignoreCase: boolean;
@@ -11,7 +11,7 @@ export function buildDiffMarkdown(
   options: MarkdownExportOptions,
 ): string {
   const generatedAt = formatGeneratedAt(new Date());
-  const changes = diffLines(leftText, rightText, {
+  const changes = createLineDiff(leftText, rightText, {
     ignoreCase: options.ignoreCase,
     ignoreWhitespace: options.ignoreWhitespace,
     newlineIsToken: true,

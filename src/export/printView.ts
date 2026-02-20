@@ -1,4 +1,6 @@
-import { diffLines } from "diff";
+import { createLineDiff } from "../diff/lineDiff";
+import { escapeHtml } from "../shared/html";
+import { calculateTextStats } from "../shared/textStats";
 
 export type PrintOptions = {
   ignoreCase: boolean;
@@ -16,16 +18,6 @@ export type SideRow = {
 export type TwoColumnRow = {
   left: SideRow;
   right: SideRow;
-};
-
-type TextStats = {
-  chars: number;
-  spaces: number;
-  charsWithSpaces: number;
-  lines: number;
-  newlines: number;
-  charsWithNewlines: number;
-  words: number;
 };
 
 export function buildPrintableTwoColumnHtml(
@@ -355,9 +347,10 @@ export function buildTwoColumnRows(
   rightText: string,
   options: PrintOptions,
 ): TwoColumnRow[] {
-  const changes = diffLines(leftText, rightText, {
+  const changes = createLineDiff(leftText, rightText, {
     ignoreCase: options.ignoreCase,
     ignoreWhitespace: options.ignoreWhitespace,
+    newlineIsToken: true,
   });
 
   const rows: TwoColumnRow[] = [];
@@ -468,15 +461,6 @@ function toLines(value: string): string[] {
   return lines.length > 0 ? lines : [""];
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
 function kindMark(kind: RowKind): string {
   if (kind === "added") {
     return "+";
@@ -561,40 +545,4 @@ function normalizeLine(line: string, options: PrintOptions): string {
     normalized = normalized.toLowerCase();
   }
   return normalized;
-}
-
-function calculateTextStats(text: string): TextStats {
-  const normalizedNewlines = text.replaceAll(/\r\n?/g, "\n");
-  const newlineMatches = normalizedNewlines.match(/\n/g);
-  const spaceMatches = normalizedNewlines.match(/[^\S\n]/g);
-  const nonWhitespace = normalizedNewlines.replaceAll(/\s/g, "");
-  const words =
-    normalizedNewlines.trim().length === 0 ? 0 : normalizedNewlines.trim().split(/\s+/).length;
-
-  const chars = Array.from(nonWhitespace).length;
-  const spaces = spaceMatches?.length ?? 0;
-  const newlines = newlineMatches?.length ?? 0;
-  const lines = countLines(normalizedNewlines);
-  const charsWithSpaces = chars + spaces;
-
-  return {
-    chars,
-    spaces,
-    charsWithSpaces,
-    lines,
-    newlines,
-    charsWithNewlines: charsWithSpaces + newlines,
-    words,
-  };
-}
-
-function countLines(text: string): number {
-  if (text.length === 0) {
-    return 0;
-  }
-  const lines = text.split("\n");
-  if (lines[lines.length - 1] === "") {
-    return Math.max(lines.length - 1, 0);
-  }
-  return lines.length;
 }

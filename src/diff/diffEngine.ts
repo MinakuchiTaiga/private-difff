@@ -1,4 +1,5 @@
-import { type Change, diffChars, diffLines, diffWords } from "diff";
+import { type Change, diffChars, diffWords } from "diff";
+import { createLineDiff } from "./lineDiff";
 
 export type DiffMode = "chars" | "words" | "lines";
 
@@ -65,7 +66,7 @@ function runDiff(leftText: string, rightText: string, options: DiffOptions): Cha
     });
   }
 
-  return diffLines(leftText, rightText, {
+  return createLineDiff(leftText, rightText, {
     ignoreCase: options.ignoreCase,
     ignoreWhitespace: options.ignoreWhitespace,
     newlineIsToken: true,

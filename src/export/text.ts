@@ -1,4 +1,5 @@
 import { type DiffMode, createDiff } from "../diff/diffEngine";
+import { modeLabel } from "../shared/mode";
 
 export type TextExportOptions = {
   mode: DiffMode;
@@ -42,16 +43,6 @@ export function buildDiffText(
     "[変更後全文]",
     rightText.length > 0 ? rightText : "",
   ].join("\n");
-}
-
-function modeLabel(mode: DiffMode): string {
-  if (mode === "chars") {
-    return "文字";
-  }
-  if (mode === "words") {
-    return "単語";
-  }
-  return "行";
 }
 
 function splitLines(value: string): string[] {
