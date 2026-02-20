@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
 
 const svg = readFileSync('public/ogp.svg', 'utf8');
-const fontFiles = [join('public', 'noto-sans-jp-japanese-700-normal.ttf')];
+const fontFiles = [join('scripts', 'assets', 'noto-sans-jp-japanese-700-normal.ttf')];
 
 const resvg = new Resvg(svg, {
   fitTo: { mode: 'width', value: 1200 },
