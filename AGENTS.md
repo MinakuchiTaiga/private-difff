@@ -51,6 +51,30 @@
 - build: `pnpm run build`
 - preview: `pnpm run preview`
 
+## Development Rules
+### セットアップ
+- `pnpm install --frozen-lockfile`
+- `pnpm run dev`
+
+### 品質確認
+- `pnpm run lint`
+- `pnpm run test`
+- `pnpm run build`
+
+### ローカル確認（重要）
+- `dist/index.html` を `file://` で直接開くと、ブラウザのCORS制約でJS/CSSが読み込めない。
+- 必ずHTTPサーバー経由で確認する（`pnpm run preview`）。
+- 例: `http://localhost:4173/` を開く。
+
+### デプロイ
+- `main` ブランチへの push で `.github/workflows/pages.yml` が実行され、`dist` が GitHub Pages へデプロイされる。
+- GitHubリポジトリ側で Pages のソースを `GitHub Actions` に設定する。
+
+### バージョン固定ルール
+- `package.json` では依存バージョンを完全固定（`^` / `~` 不使用）。
+- `pnpm-lock.yaml` を必須管理。
+- CI は `pnpm install --frozen-lockfile` で整合性を検証。
+
 ## Definition of Done
 - 2テキスト入力 + ファイル読込 + 差分表示が動作
 - 差分モード（文字/単語/行）を切替可能
