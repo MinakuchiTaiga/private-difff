@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       diff:
-        specifier: 7.0.0
-        version: 7.0.0
+        specifier: 8.0.3
+        version: 8.0.3
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4
@@ -599,8 +599,8 @@ packages:
     resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
     engines: {node: '>=6'}
 
-  diff@7.0.0:
-    resolution: {integrity: sha512-PJWHUb1RFevKCwaFA9RlG5tCd+FO5iRh9A8HEtkmBH2Li03iJriB6m6JIN4rGz3K3JLawI7/veA1xzRKP6ISBw==}
+  diff@8.0.3:
+    resolution: {integrity: sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==}
     engines: {node: '>=0.3.1'}
 
   eastasianwidth@0.2.0:
@@ -1309,7 +1309,7 @@ snapshots:
 
   deep-eql@5.0.2: {}
 
-  diff@7.0.0: {}
+  diff@8.0.3: {}
 
   eastasianwidth@0.2.0: {}
 
