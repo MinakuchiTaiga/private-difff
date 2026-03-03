@@ -24,5 +24,10 @@
     "vite": "6.4.1",
     "vitest": "3.0.5"
   },
+  "pnpm": {
+    "overrides": {
+      "minimatch": "9.0.7"
+    }
+  },
   "packageManager": "pnpm@10.4.1"
 }
