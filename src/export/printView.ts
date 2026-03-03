@@ -458,7 +458,12 @@ function toLines(value: string): string[] {
   if (lines[lines.length - 1] === "") {
     lines.pop();
   }
-  return lines.length > 0 ? lines : [""];
+  // With `newlineIsToken: true`, diff chunks can start with "\n" to close the
+  // previous line. That delimiter must not render as an extra blank row.
+  if (value.startsWith("\n") && lines[0] === "") {
+    lines.shift();
+  }
+  return lines;
 }
 
 function kindMark(kind: RowKind): string {

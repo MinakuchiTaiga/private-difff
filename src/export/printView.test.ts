@@ -14,6 +14,28 @@ describe("buildTwoColumnRows", () => {
     expect(rows.some((row) => row.right.kind === "added")).toBe(true);
   });
 
+  it("does not add blank rows around replaced lines", () => {
+    const rows = buildTwoColumnRows("a\nb\nc\n", "a\nx\nc\n", {
+      ignoreCase: false,
+      ignoreWhitespace: false,
+    });
+
+    expect(rows).toEqual([
+      {
+        left: { lineNumber: "1", text: "a", kind: "same" },
+        right: { lineNumber: "1", text: "a", kind: "same" },
+      },
+      {
+        left: { lineNumber: "2", text: "b", kind: "removed" },
+        right: { lineNumber: "2", text: "x", kind: "added" },
+      },
+      {
+        left: { lineNumber: "3", text: "c", kind: "same" },
+        right: { lineNumber: "3", text: "c", kind: "same" },
+      },
+    ]);
+  });
+
   it("aligns replacement lines with ignore options", () => {
     const rows = buildTwoColumnRows("A\n  keep\n", "a\nkeep\n", {
       ignoreCase: true,
